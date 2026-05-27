@@ -94,4 +94,19 @@ describe('BannerBuilder', () => {
 
     expect(sendMessage).toHaveBeenCalledWith('fillBanner', [{ key: 'account0.radio.use', value: 'Y' }]);
   });
+
+  it('노출 방식은 별도 fillExposure 메시지로 보낸다', () => {
+    render(<BannerBuilder />);
+
+    fireEvent.click(screen.getByRole('button', { name: '랜덤' }));
+    fireEvent.click(screen.getByRole('button', { name: '노출 설정 팝업에 적용' }));
+
+    expect(sendMessage).toHaveBeenCalledWith('fillExposure', [{ key: 'exposureMethod', value: 'RANDOM' }]);
+  });
+
+  it('노출 방식을 고르지 않으면 적용 버튼이 비활성화된다', () => {
+    render(<BannerBuilder />);
+
+    expect(screen.getByRole('button', { name: '노출 설정 팝업에 적용' })).toHaveProperty('disabled', true);
+  });
 });

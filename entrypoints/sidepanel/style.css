@@ -328,6 +328,21 @@ textarea:focus-visible {
   line-height: 1.45;
 }
 
+.exposure-section {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed #d0d5dd;
+}
+
+.exposure-section h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  color: #101828;
+}
+
 .badge[data-tone='ok'] {
   color: #027a48;
   background: #dcfae6;

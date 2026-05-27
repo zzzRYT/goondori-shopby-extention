@@ -8,13 +8,14 @@ export default defineBackground(() => {
 
   onMessage('fillDisplay', async (message) => sendToActiveTab('fillDisplay', message.data));
   onMessage('fillBanner', async (message) => sendToActiveTab('fillBanner', message.data));
+  onMessage('fillExposure', async (message) => sendToActiveTab('fillExposure', message.data));
   onMessage('readCurrentDisplay', async () => sendToActiveTab('readCurrentDisplay', undefined));
 });
 
-async function sendToActiveTab(type: 'fillDisplay' | 'fillBanner', fields: FillField[]): Promise<FillResult>;
+async function sendToActiveTab(type: 'fillDisplay' | 'fillBanner' | 'fillExposure', fields: FillField[]): Promise<FillResult>;
 async function sendToActiveTab(type: 'readCurrentDisplay', fields: undefined): Promise<Record<string, string>>;
 async function sendToActiveTab(
-  type: 'fillDisplay' | 'fillBanner' | 'readCurrentDisplay',
+  type: 'fillDisplay' | 'fillBanner' | 'fillExposure' | 'readCurrentDisplay',
   fields: FillField[] | undefined,
 ) {
   const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });

@@ -5,10 +5,11 @@ import { FillReport } from './FillReport';
 type FillButtonProps = {
   disabled: boolean;
   fields: FillField[];
-  message?: 'fillDisplay' | 'fillBanner';
+  message?: 'fillDisplay' | 'fillBanner' | 'fillExposure';
+  label?: string;
 };
 
-export function FillButton({ disabled, fields, message = 'fillDisplay' }: FillButtonProps) {
+export function FillButton({ disabled, fields, message = 'fillDisplay', label = '어드민에 채우기' }: FillButtonProps) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<FillResult | null>(null);
 
@@ -31,7 +32,7 @@ export function FillButton({ disabled, fields, message = 'fillDisplay' }: FillBu
   return (
     <div className="fill-action">
       <button className="primary-button" disabled={disabled || loading} onClick={fill} type="button">
-        {loading ? '채우는 중' : '어드민에 채우기'}
+        {loading ? '채우는 중' : label}
       </button>
       <FillReport result={result} />
     </div>

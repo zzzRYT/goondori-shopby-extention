@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { parseDisplayId } from '../../../lib/display-id';
 import type { FillField } from '../../../lib/messaging';
 import { bannerRadioKey } from '../../../lib/shopby/banner-radios';
+import { EXPOSURE_METHOD_KEY } from '../../../lib/shopby/exposure';
 import { bannerFieldKey } from '../../../lib/shopby/selectors';
 import { FillButton } from './FillButton';
 
 type BannerMode = 'main' | 'strip';
 type UseValue = '' | 'Y' | 'N';
 type PeriodValue = '' | 'REGULAR' | 'PERIOD';
+type ExposureValue = '' | 'RANDOM' | 'SEQUENTIAL';
 
 const SIZE_PRESETS: { label: string; width: string; height: string }[] = [
   { label: '16:9', width: '16', height: '9' },
@@ -23,6 +25,7 @@ export function BannerBuilder() {
   const [landingUrl, setLandingUrl] = useState('');
   const [use, setUse] = useState<UseValue>('');
   const [periodMode, setPeriodMode] = useState<PeriodValue>('');
+  const [exposureMethod, setExposureMethod] = useState<ExposureValue>('');
 
   const index = Math.max(0, accountNo - 1);
   const stripIdInvalid = mode === 'strip' && accountName.trim().length > 0 && !parseDisplayId(accountName).ok;
@@ -209,6 +212,55 @@ export function BannerBuilder() {
       )}
 
       <FillButton disabled={disabled} fields={fields} message="fillBanner" />
+
+      <div className="exposure-section">
+        <div className="section-heading">
+          <div>
+            <h3>노출 방식 (노출 설정 팝업)</h3>
+            <p>
+              어드민에서 <strong>노출 설정</strong> 버튼을 눌러 팝업을 연 뒤 적용하세요. 콘텐츠가 여러 개일 때의 노출
+              순서입니다.
+            </p>
+          </div>
+        </div>
+
+        <fieldset className="field-group field-group--wide">
+          <legend>노출 방식</legend>
+          <div className="segmented segmented--three">
+            <button
+              className="segmented__button"
+              data-active={exposureMethod === ''}
+              onClick={() => setExposureMethod('')}
+              type="button"
+            >
+              변경 안 함
+            </button>
+            <button
+              className="segmented__button"
+              data-active={exposureMethod === 'RANDOM'}
+              onClick={() => setExposureMethod('RANDOM')}
+              type="button"
+            >
+              랜덤
+            </button>
+            <button
+              className="segmented__button"
+              data-active={exposureMethod === 'SEQUENTIAL'}
+              onClick={() => setExposureMethod('SEQUENTIAL')}
+              type="button"
+            >
+              순차
+            </button>
+          </div>
+        </fieldset>
+
+        <FillButton
+          disabled={exposureMethod === ''}
+          fields={exposureMethod ? [{ key: EXPOSURE_METHOD_KEY, value: exposureMethod }] : []}
+          label="노출 설정 팝업에 적용"
+          message="fillExposure"
+        />
+      </div>
     </section>
   );
 }

@@ -79,6 +79,19 @@
   이미지 업로드는 단순 텍스트 채움 대상 아님 → 사람이 설정.
 - 메인 배너: 16:9 1개 + 3:2 1개 중 **하나만** 사용(구좌 인덱스 선택 필요).
 - 띠 배너: `accountName`에 **연결할 진열 ID**를 넣음(자유입력 아님). 비율 무시.
+- 사용 여부(Y/N)·노출 기간(상시/기간)은 name 없는 라디오 → 콘텐츠 테이블(bannerName 앵커)
+  + th 라벨로 탐색해 클릭. 날짜(데이트피커)는 자동화 제외(사람이 입력).
+
+### 노출 설정 팝업 (`popup-remote.shopby.co.kr`) — 또 다른 origin
+
+배너 구좌의 **"노출 설정" 버튼**을 누르면 `popup-remote.shopby.co.kr`에 별도 페이지가
+뜬다(enterprise-remote와 다른 origin → content script가 이 origin도 매칭해야 함).
+
+- 노출 방식 라디오: `랜덤(RANDOM)` / `순차(SEQUENTIAL)` — name 없음, `th "노출 방식"` 앵커로 탐색.
+- 그 외 플랫폼 구분/회원등급·그룹 노출 설정 라디오도 있으나 v1 범위 밖.
+- 저장 버튼(`[data-testid="submit-button-group-confirm"]`)은 **누르지 않는다**(사람이 저장).
+- ⚠️ 라우팅 리스크: 이 팝업이 새 탭/창/모달 iframe 중 무엇인지에 따라 background의
+  active-tab 메시지가 닿는 방식이 달라진다 → 실동작 검증 필요.
 
 ### 브랜드 관리 (`/product/categorization/brand`)
 

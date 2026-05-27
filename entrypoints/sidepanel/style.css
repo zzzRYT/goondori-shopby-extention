@@ -335,6 +335,58 @@ textarea:focus-visible {
   background: #fef0c7;
 }
 
+.fill-action {
+  display: grid;
+  gap: 10px;
+}
+
+.primary-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 7px;
+  padding: 9px 12px;
+  color: #ffffff;
+  background: #155eef;
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  background: #004eeb;
+}
+
+.primary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.fill-report {
+  display: grid;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: #344054;
+  background: #ffffff;
+  border: 1px solid #d0d5dd;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.fill-report strong {
+  color: #101828;
+  font-size: 13px;
+}
+
+.fill-report ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
 .title-preview {
   display: grid;
   gap: 8px;

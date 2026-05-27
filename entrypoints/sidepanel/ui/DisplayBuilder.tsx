@@ -7,6 +7,7 @@ import {
   type Method,
   type UserTypeChar,
 } from '../../../lib/display-id';
+import { FillButton } from './FillButton';
 import { UserTypeChips } from './UserTypeChips';
 
 type DisplayType = DisplaySpec['type'];
@@ -190,6 +191,8 @@ export function DisplayBuilder() {
           ))}
         </ul>
       )}
+
+      <FillButton disabled={errorIssues.length > 0} fields={[{ key: 'displayId', value: preview }]} />
     </section>
   );
 }

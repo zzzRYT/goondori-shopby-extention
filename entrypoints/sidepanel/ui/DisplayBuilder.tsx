@@ -19,6 +19,7 @@ export function DisplayBuilder() {
   const [userTypes, setUserTypes] = useState<UserTypeChar[]>([]);
   const [brandNo, setBrandNo] = useState('');
   const [label, setLabel] = useState('베스트');
+  const [sourceId, setSourceId] = useState('');
 
   const spec = useMemo<DisplaySpec>(() => {
     if (type === 'b') return { env, order, method, type, brandNo };
@@ -31,6 +32,26 @@ export function DisplayBuilder() {
   const errorIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'error');
   const warnIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'warn');
 
+  function restoreFromId(nextSourceId: string) {
+    setSourceId(nextSourceId);
+
+    const parsed = parseDisplayId(nextSourceId);
+    if (!parsed.ok) return;
+
+    setEnv(parsed.value.env);
+    setOrder(parsed.value.order);
+    setMethod(parsed.value.method);
+    setType(parsed.value.type);
+
+    if (parsed.value.type === 't') {
+      setUserTypes(parsed.value.userTypes);
+    } else if (parsed.value.type === 'b') {
+      setBrandNo(parsed.value.brandNo);
+    } else {
+      setLabel(parsed.value.label);
+    }
+  }
+
   return (
     <section className="display-builder" aria-labelledby="display-builder-title">
       <div className="section-heading">
@@ -41,6 +62,11 @@ export function DisplayBuilder() {
       </div>
 
       <div className="form-grid">
+        <label className="field field--wide">
+          <span>기존 진열 ID</span>
+          <input onChange={(event) => restoreFromId(event.target.value)} value={sourceId} />
+        </label>
+
         <fieldset className="field-group">
           <legend>환경</legend>
           <div className="segmented">

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { parseDisplayId } from '../../../lib/display-id';
 import type { FillField } from '../../../lib/messaging';
+import { bannerRadioKey } from '../../../lib/shopby/banner-radios';
 import { bannerFieldKey } from '../../../lib/shopby/selectors';
 import { FillButton } from './FillButton';
 
 type BannerMode = 'main' | 'strip';
+type UseValue = '' | 'Y' | 'N';
+type PeriodValue = '' | 'REGULAR' | 'PERIOD';
 
 const SIZE_PRESETS: { label: string; width: string; height: string }[] = [
   { label: '16:9', width: '16', height: '9' },
@@ -18,17 +21,22 @@ export function BannerBuilder() {
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [landingUrl, setLandingUrl] = useState('');
+  const [use, setUse] = useState<UseValue>('');
+  const [periodMode, setPeriodMode] = useState<PeriodValue>('');
 
   const index = Math.max(0, accountNo - 1);
   const stripIdInvalid = mode === 'strip' && accountName.trim().length > 0 && !parseDisplayId(accountName).ok;
-  const disabled = accountName.trim().length === 0 || stripIdInvalid;
 
   const fields: FillField[] = [
     ...(accountName.trim() ? [{ key: bannerFieldKey(index, 'accountName'), value: accountName }] : []),
+    ...(use ? [{ key: bannerRadioKey(index, 'use'), value: use }] : []),
     ...(mode === 'main' && width.trim() ? [{ key: bannerFieldKey(index, 'width'), value: width }] : []),
     ...(mode === 'main' && height.trim() ? [{ key: bannerFieldKey(index, 'height'), value: height }] : []),
+    ...(periodMode ? [{ key: bannerRadioKey(index, 'periodMode'), value: periodMode }] : []),
     ...(landingUrl.trim() ? [{ key: bannerFieldKey(index, 'landingUrl'), value: landingUrl }] : []),
   ];
+
+  const disabled = fields.length === 0 || stripIdInvalid;
 
   function applyPreset(preset: (typeof SIZE_PRESETS)[number]) {
     setWidth(preset.width);
@@ -92,6 +100,21 @@ export function BannerBuilder() {
           />
         </div>
 
+        <fieldset className="field-group field-group--wide">
+          <legend>사용 여부</legend>
+          <div className="segmented segmented--three">
+            <button className="segmented__button" data-active={use === ''} onClick={() => setUse('')} type="button">
+              변경 안 함
+            </button>
+            <button className="segmented__button" data-active={use === 'Y'} onClick={() => setUse('Y')} type="button">
+              사용
+            </button>
+            <button className="segmented__button" data-active={use === 'N'} onClick={() => setUse('N')} type="button">
+              사용 안 함
+            </button>
+          </div>
+        </fieldset>
+
         {mode === 'main' && (
           <fieldset className="field-group field-group--wide">
             <legend>사이즈</legend>
@@ -126,6 +149,41 @@ export function BannerBuilder() {
             띠 배너는 이미지 비율 설정이 무시됩니다(가로·세로 입력해도 적용 안 됨).
           </p>
         )}
+
+        <fieldset className="field-group field-group--wide">
+          <legend>노출 기간</legend>
+          <div className="segmented segmented--three">
+            <button
+              className="segmented__button"
+              data-active={periodMode === ''}
+              onClick={() => setPeriodMode('')}
+              type="button"
+            >
+              변경 안 함
+            </button>
+            <button
+              className="segmented__button"
+              data-active={periodMode === 'REGULAR'}
+              onClick={() => setPeriodMode('REGULAR')}
+              type="button"
+            >
+              상시 노출
+            </button>
+            <button
+              className="segmented__button"
+              data-active={periodMode === 'PERIOD'}
+              onClick={() => setPeriodMode('PERIOD')}
+              type="button"
+            >
+              기간 노출
+            </button>
+          </div>
+          {periodMode === 'PERIOD' && (
+            <small className="field-hint">
+              기간 노출은 시작·종료 날짜를 어드민 데이트피커에서 직접 입력하세요(자동 입력 안 됨).
+            </small>
+          )}
+        </fieldset>
 
         <div className="field field--wide">
           <label htmlFor="banner-landing">랜딩 URL</label>

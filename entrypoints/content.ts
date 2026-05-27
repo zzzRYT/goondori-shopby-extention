@@ -3,7 +3,10 @@ import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { BANNER_FIELD_MAP, DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
 
 export default defineContentScript({
-  matches: ['<all_urls>'],
+  // 정찰(docs/recon.md): 실제 폼은 enterprise-remote.shopby.co.kr iframe 내부에 렌더된다.
+  // allFrames로 iframe 프레임에도 주입해야 폼 필드에 닿는다.
+  matches: ['https://enterprise-remote.shopby.co.kr/*'],
+  allFrames: true,
   main() {
     onMessage('fillDisplay', (message) => fillShopbyFields(DISPLAY_FIELD_MAP, message.data));
     onMessage('fillBanner', (message) => fillShopbyFields(BANNER_FIELD_MAP, message.data));

@@ -5,8 +5,9 @@ export default defineConfig({
   manifest: {
     name: '군도리 샵바이 진열·배너 관리',
     permissions: ['sidePanel', 'storage', 'activeTab', 'scripting'],
-    // TODO(정찰): 실제 샵바이 어드민 origin 으로 교체
-    host_permissions: ['https://*.shopby.co.kr/*', 'https://*.e-ncp.com/*'],
+    // 정찰(docs/recon.md): 편집 폼은 enterprise-remote.shopby.co.kr iframe 안에 렌더된다.
+    // 부모 셸(*.shopby.co.kr)에서 사이드패널을 열고, 채우기는 remote iframe의 content script가 수행.
+    host_permissions: ['https://*.shopby.co.kr/*'],
     side_panel: { default_path: 'sidepanel.html' },
     action: {},
   },

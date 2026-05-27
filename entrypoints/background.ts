@@ -3,7 +3,7 @@ import { onMessage, sendMessage, type FillField, type FillResult } from '../lib/
 export default defineBackground(() => {
   browser.action.onClicked.addListener(async (tab) => {
     if (tab.id == null) return;
-    await chrome.sidePanel.open({ tabId: tab.id });
+    await browser.sidePanel.open({ tabId: tab.id });
   });
 
   onMessage('fillDisplay', async (message) => sendToActiveTab('fillDisplay', message.data));

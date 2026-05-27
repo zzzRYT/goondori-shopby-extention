@@ -33,16 +33,43 @@
 
 ## 캡처 현황
 
-`tests/fixtures/`의 3개 HTML 덤프는 **부모 셸만** 캡처됐다(폼 렌더 전 상태).
-`#content`가 비어 있고 진열명·색상·노출설정 등 폼 라벨이 없음. 실제 셀렉터 추출 불가.
+`tests/fixtures/`의 3개 HTML 덤프는 **iframe 내부 폼(enterprise-remote)** 으로 재캡처 완료.
+실제 입력 필드가 모두 들어 있어 셀렉터 추출 가능.
 
 - [x] 어드민이 iframe 아키텍처임을 확인
 - [x] 3개 페이지의 iframe URL·쿼리 파라미터 확보
-- [ ] **iframe 내부 폼 HTML** (상품 진열 수정) — 셀렉터 추출용, 재캡처 필요
-- [ ] **iframe 내부 폼 HTML** (배너 수정) — 재캡처 필요
-- [ ] **iframe 내부 폼 HTML** (브랜드 관리) — 재캡처 필요
-- [ ] 부모 어드민 origin 확정 (주소창 URL)
+- [x] iframe 내부 폼 HTML (상품 진열 / 배너 / 브랜드) 확보
+- [x] 진열 페이지 셀렉터 확정 (아래)
+- [ ] 부모 어드민 origin 확정 (주소창 URL) — content script는 remote origin 기준이라 채우기엔 불필요. 사이드패널 트리거 가드용으로만 선택적.
+- [ ] 배너 페이지 셀렉터 — 구좌/콘텐츠 반복 구조, 안정 `name` 거의 없음(라벨 기반 필요). Stage 6.
 - [ ] 브랜드 목록 XHR 존재 여부 (Network 탭) — Stage 5 분기 결정
+
+## 확정 셀렉터
+
+### 진열 수정 (`/appearance/custom/product-main/edit`)
+
+안정적인 `name` 속성 사용. CSS 모듈 클래스(`Input_input-field__cserq` 등)는
+빌드 해시라 셀렉터로 부적합.
+
+| 필드 | 셀렉터 | 비고 |
+|---|---|---|
+| 진열 ID | `input[name="sectionId"]` | placeholder "ID 입력", maxlength 20. 예: `ct_3_s_b_43215615` |
+| 진열명 | `input[name="title"]` | placeholder "진열명을 입력해주세요", maxlength 50 |
+| 진열 상세설명(색상) | `input[name="sectionExplain"]` | placeholder "진열 상세설명을…", maxlength 100 |
+
+> 노출여부/진열순서는 라디오·수동진열 UI라 자동 채움 대상에서 제외(사람이 설정).
+
+### 배너 수정 (`/appearance/custom/headless-banners/edit`) — 미확정
+
+- `name` 속성은 `groupNo` 1개뿐. 구좌("구좌 1")·콘텐츠("배너 콘텐츠 1") 반복 블록.
+- 핵심 필드: 구좌명(`구좌명을 입력 해주세요` placeholder), 사이즈(16:9/3:2 토글), 노출 설정,
+  노출 기간, 랜딩 URL(`랜딩 URL` th). 라벨/placeholder 기준 셀렉터 전략 필요. → Stage 6.
+
+### 브랜드 관리 (`/product/categorization/brand`)
+
+- 브랜드 상세 폼: `input[name="brandInfo.mainBrandName"]`, 브랜드 번호는 `<td>43186744</td>` 텍스트.
+- 좌측 브랜드 목록(버튼 204개)에 이름+번호 존재 → API 없어도 `AdminPageBrandSource`(HTML 파싱) 가능.
+- 단, 더 안정적인 API가 있는지 Network 탭 확인 필요(미답).
 
 ## 브랜드 소스 (Stage 5 분기) — 미확정
 

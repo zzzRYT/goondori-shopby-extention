@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   buildDisplayId,
   parseDisplayId,
@@ -7,12 +7,17 @@ import {
   type Method,
   type UserTypeChar,
 } from '../../../lib/display-id';
-import { FillButton } from './FillButton';
 import { UserTypeChips } from './UserTypeChips';
 
 type DisplayType = DisplaySpec['type'];
 
-export function DisplayBuilder() {
+export type DisplayResult = { displayId: string; hasError: boolean };
+
+type DisplayBuilderProps = {
+  onChange: (result: DisplayResult) => void;
+};
+
+export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
   const [env, setEnv] = useState<Env>('c');
   const [order, setOrder] = useState(1);
   const [method, setMethod] = useState<Method>('p');
@@ -32,6 +37,11 @@ export function DisplayBuilder() {
   const validation = parseDisplayId(preview);
   const errorIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'error');
   const warnIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'warn');
+  const hasError = errorIssues.length > 0;
+
+  useEffect(() => {
+    onChange({ displayId: preview, hasError });
+  }, [preview, hasError, onChange]);
 
   function restoreFromId(nextSourceId: string) {
     setSourceId(nextSourceId);
@@ -191,8 +201,6 @@ export function DisplayBuilder() {
           ))}
         </ul>
       )}
-
-      <FillButton disabled={errorIssues.length > 0} fields={[{ key: 'displayId', value: preview }]} />
     </section>
   );
 }

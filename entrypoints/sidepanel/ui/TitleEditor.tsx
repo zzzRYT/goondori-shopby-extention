@@ -1,8 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { parseColorSpec, previewTitle, type ColorRule } from '../../../lib/display-id';
 
-export function TitleEditor() {
+export type TitleResult = { title: string; color: string; hasError: boolean };
+
+type TitleEditorProps = {
+  onChange: (result: TitleResult) => void;
+};
+
+export function TitleEditor({ onChange }: TitleEditorProps) {
   const [title, setTitle] = useState('');
   const [colorSpec, setColorSpec] = useState('');
   const [previewName, setPreviewName] = useState('지성현');
@@ -13,6 +19,12 @@ export function TitleEditor() {
   const errors = issues.filter((issue) => issue.severity === 'error');
   const warnings = issues.filter((issue) => issue.severity === 'warn');
   const preview = previewTitle(title, previewName);
+  const hasError = errors.length > 0;
+
+  useEffect(() => {
+    // 진열 상세설명(sectionExplain) 필드에는 색상 규칙 원문을 그대로 채운다.
+    onChange({ title, color: colorSpec, hasError });
+  }, [title, colorSpec, hasError, onChange]);
 
   return (
     <section className="title-editor" aria-labelledby="title-editor-title">

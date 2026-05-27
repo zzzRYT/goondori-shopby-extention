@@ -39,7 +39,8 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
         <div className="field field--wide">
           <label htmlFor="title-editor-name">진열명</label>
           <small className="field-hint" id="title-editor-name-hint">
-            앱에 그대로 노출됩니다. <code>{'{이름}'}</code> 예약어는 로그인 사용자 이름으로 치환돼요.
+            앱에 그대로 노출됩니다. <code>{'{이름}'}</code> 예약어는 로그인 사용자 이름으로 치환돼요. 예:{' '}
+            <code>{'{이름}님을 위한 추천 상품'}</code> → 지성현님을 위한 추천 상품
           </small>
           <input
             aria-describedby="title-editor-name-hint"

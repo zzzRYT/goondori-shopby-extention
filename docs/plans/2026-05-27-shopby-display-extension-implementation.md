@@ -32,7 +32,7 @@
 
 Run:
 ```bash
-npx wxt@latest init . --template react-ts --pm npm
+pnpm dlx wxt@latest init . --template react-ts --pm pnpm
 ```
 초기화가 기존 파일을 덮어쓰려 하면 충돌 항목(.gitignore 등)은 우리 것 유지.
 
@@ -40,14 +40,14 @@ npx wxt@latest init . --template react-ts --pm npm
 
 Run:
 ```bash
-npm install
-npm install -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-library/jest-dom
-npm install @webext-core/messaging
+pnpm install
+pnpm add -D vitest @vitest/coverage-v8 jsdom @testing-library/react @testing-library/jest-dom
+pnpm add @webext-core/messaging
 ```
 
 **Step 3:** 빌드가 도는지 확인.
 
-Run: `npm run build`
+Run: `pnpm build`
 Expected: `.output/chrome-mv3/` 생성, 에러 없음.
 
 **Step 4: Commit**
@@ -98,7 +98,7 @@ export default defineConfig({
 
 **Step 3:** `package.json` scripts에 `"test": "vitest"`, `"test:run": "vitest run"`, `"coverage": "vitest run --coverage"` 추가.
 
-**Step 4:** Run: `npm run test:run` → 테스트 0개여도 정상 종료(exit 0) 확인.
+**Step 4:** Run: `pnpm test:run` → 테스트 0개여도 정상 종료(exit 0) 확인.
 
 **Step 5: Commit**
 ```bash
@@ -171,7 +171,7 @@ describe('buildDisplayId', () => {
 });
 ```
 
-**Step 2:** Run `npm run test:run -- build` → FAIL (buildDisplayId 없음).
+**Step 2:** Run `pnpm test:run -- build` → FAIL (buildDisplayId 없음).
 
 **Step 3: Implement**
 ```ts
@@ -187,7 +187,7 @@ export function buildDisplayId(spec: DisplaySpec): string {
 }
 ```
 
-**Step 4:** Run `npm run test:run -- build` → PASS.
+**Step 4:** Run `pnpm test:run -- build` → PASS.
 
 **Step 5: Commit**
 ```bash
@@ -414,7 +414,7 @@ git commit -m "feat: 진열명 {이름} 예약어 미리보기 치환"
 ### Task 1.6: 도메인 배럴 + 커버리지 확인
 
 **Step 1:** `lib/display-id/index.ts` 에서 build/parse/color/title/types re-export.
-**Step 2:** Run: `npm run coverage` → `lib/display-id` 80%+ 확인.
+**Step 2:** Run: `pnpm coverage` → `lib/display-id` 80%+ 확인.
 **Step 3: Commit**
 ```bash
 git add lib/display-id/index.ts
@@ -435,7 +435,7 @@ git commit -m "chore: display-id 도메인 배럴 export"
 탭: 「진열」 / 「배너」 / 「브랜드」. 우선 「진열」만 내용 채우고 나머지는 placeholder.
 
 **Step 1:** 컴포넌트 작성(상태는 로컬 `useState`, URL/전역상태 불필요 — YAGNI).
-**Step 2:** Run `npm run dev` 로 사이드패널 로드 확인(크롬에서 익스텐션 로드 → 사이드패널 열기).
+**Step 2:** Run `pnpm dev` 로 사이드패널 로드 확인(크롬에서 익스텐션 로드 → 사이드패널 열기).
 **Step 3: Commit** `feat: 사이드패널 앱 셸 + 탭 네비게이션`
 
 ### Task 2.2: DisplayBuilder 폼 (라이브 ID 미리보기 + 검증 배지)
@@ -602,7 +602,7 @@ export interface BrandSource { fetchBrands(): Promise<BrandEntry[]>; }
 - 라이브 운영 어드민 미실행.
 
 ### Task 7.2: 마감
-- `npm run coverage` 도메인 80%+ 재확인, `npm run build` 무에러.
+- `pnpm coverage` 도메인 80%+ 재확인, `pnpm build` 무에러.
 - README: 설치(개발자 모드 로드), 사용법, 정찰 절차, "저장은 사람이" 안전 원칙 명시.
 **Commit:** `docs: README + E2E, v1 마감`
 

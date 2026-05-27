@@ -1,0 +1,133 @@
+import { useMemo, useState } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
+import { parseColorSpec, previewTitle, type ColorRule } from '../../../lib/display-id';
+
+export function TitleEditor() {
+  const [title, setTitle] = useState('');
+  const [colorSpec, setColorSpec] = useState('');
+  const [previewName, setPreviewName] = useState('지성현');
+
+  const colorResult = useMemo(() => parseColorSpec(colorSpec, title), [colorSpec, title]);
+  const rules = colorResult.ok ? colorResult.value : [];
+  const issues = colorResult.ok ? [] : colorResult.issues;
+  const errors = issues.filter((issue) => issue.severity === 'error');
+  const warnings = issues.filter((issue) => issue.severity === 'warn');
+  const preview = previewTitle(title, previewName);
+
+  return (
+    <section className="title-editor" aria-labelledby="title-editor-title">
+      <div className="section-heading">
+        <div>
+          <h2 id="title-editor-title">진열명 편집</h2>
+          <p>저장값과 색상 프리뷰를 함께 확인합니다.</p>
+        </div>
+      </div>
+
+      <div className="form-grid">
+        <label className="field field--wide">
+          <span>진열명</span>
+          <input onChange={(event) => setTitle(event.target.value)} value={title} />
+        </label>
+
+        <label className="field field--wide">
+          <span>색상 규칙</span>
+          <input
+            onChange={(event) => setColorSpec(event.target.value)}
+            placeholder="군인#008000, 꿀템#FFFF00"
+            value={colorSpec}
+          />
+        </label>
+
+        <label className="field field--wide">
+          <span>미리보기 이름</span>
+          <input onChange={(event) => setPreviewName(event.target.value)} value={previewName} />
+        </label>
+      </div>
+
+      <div className="title-preview">
+        <div className="title-preview__meta">
+          <span>프리뷰</span>
+          <ValidationBadge errors={errors.length} warnings={warnings.length} />
+        </div>
+        <p>{renderColoredPreview(preview, rules)}</p>
+      </div>
+
+      {issues.length > 0 && (
+        <ul className="issue-list" aria-label="진열명 검증 결과">
+          {issues.map((issue) => (
+            <li data-severity={issue.severity} key={`${issue.field}-${issue.message}`}>
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function renderColoredPreview(preview: string, rules: ColorRule[]) {
+  if (rules.length === 0) return preview || ' ';
+
+  const segments: ReactNode[] = [];
+  let cursor = 0;
+
+  while (cursor < preview.length) {
+    const next = findNextRule(preview, rules, cursor);
+    if (!next) {
+      segments.push(preview.slice(cursor));
+      break;
+    }
+
+    if (next.index > cursor) {
+      segments.push(preview.slice(cursor, next.index));
+    }
+
+    segments.push(
+      <span
+        key={`${next.rule.word}-${next.index}`}
+        style={{ '--title-color': next.rule.hex, color: 'var(--title-color)' } as CSSProperties}
+      >
+        {next.rule.word}
+      </span>,
+    );
+    cursor = next.index + next.rule.word.length;
+  }
+
+  return segments;
+}
+
+function findNextRule(preview: string, rules: ColorRule[], cursor: number) {
+  let match: { index: number; rule: ColorRule } | undefined;
+
+  for (const rule of rules) {
+    const index = preview.indexOf(rule.word, cursor);
+    if (index < 0) continue;
+    if (!match || index < match.index) match = { index, rule };
+  }
+
+  return match;
+}
+
+function ValidationBadge({ errors, warnings }: { errors: number; warnings: number }) {
+  if (errors > 0) {
+    return (
+      <span className="badge" data-tone="error">
+        오류 {errors}
+      </span>
+    );
+  }
+
+  if (warnings > 0) {
+    return (
+      <span className="badge" data-tone="warn">
+        경고 {warnings}
+      </span>
+    );
+  }
+
+  return (
+    <span className="badge" data-tone="ok">
+      정상
+    </span>
+  );
+}

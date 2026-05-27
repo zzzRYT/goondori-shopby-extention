@@ -129,6 +129,16 @@ textarea:focus-visible {
   gap: 14px;
 }
 
+.display-workspace,
+.title-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.display-workspace {
+  gap: 22px;
+}
+
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -323,4 +333,37 @@ textarea:focus-visible {
 .issue-list li[data-severity='warn'] {
   color: #b54708;
   background: #fef0c7;
+}
+
+.title-preview {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.title-preview__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title-preview__meta > span:first-child {
+  color: #667085;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.title-preview p {
+  min-height: 22px;
+  margin: 0;
+  color: #101828;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }

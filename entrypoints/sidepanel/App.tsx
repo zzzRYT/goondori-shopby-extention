@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DisplayBuilder } from './ui/DisplayBuilder';
 import { Tabs, type TabItem } from './ui/Tabs';
+import { TitleEditor } from './ui/TitleEditor';
 
 const TABS: TabItem[] = [
   { id: 'display', label: '진열' },
@@ -24,7 +25,10 @@ export default function App() {
 
       <section className="app__workspace" aria-label="작업 영역">
         {activeTab === 'display' && (
-          <DisplayBuilder />
+          <div className="display-workspace">
+            <DisplayBuilder />
+            <TitleEditor />
+          </div>
         )}
         {activeTab === 'banner' && (
           <div className="empty-pane">

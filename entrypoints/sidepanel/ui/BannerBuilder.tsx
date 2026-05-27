@@ -1,0 +1,156 @@
+import { useState } from 'react';
+import { parseDisplayId } from '../../../lib/display-id';
+import type { FillField } from '../../../lib/messaging';
+import { bannerFieldKey } from '../../../lib/shopby/selectors';
+import { FillButton } from './FillButton';
+
+type BannerMode = 'main' | 'strip';
+
+const SIZE_PRESETS: { label: string; width: string; height: string }[] = [
+  { label: '16:9', width: '16', height: '9' },
+  { label: '3:2', width: '3', height: '2' },
+];
+
+export function BannerBuilder() {
+  const [mode, setMode] = useState<BannerMode>('main');
+  const [accountNo, setAccountNo] = useState(1);
+  const [accountName, setAccountName] = useState('');
+  const [width, setWidth] = useState('');
+  const [height, setHeight] = useState('');
+  const [landingUrl, setLandingUrl] = useState('');
+
+  const index = Math.max(0, accountNo - 1);
+  const stripIdInvalid = mode === 'strip' && accountName.trim().length > 0 && !parseDisplayId(accountName).ok;
+  const disabled = accountName.trim().length === 0 || stripIdInvalid;
+
+  const fields: FillField[] = [
+    ...(accountName.trim() ? [{ key: bannerFieldKey(index, 'accountName'), value: accountName }] : []),
+    ...(mode === 'main' && width.trim() ? [{ key: bannerFieldKey(index, 'width'), value: width }] : []),
+    ...(mode === 'main' && height.trim() ? [{ key: bannerFieldKey(index, 'height'), value: height }] : []),
+    ...(landingUrl.trim() ? [{ key: bannerFieldKey(index, 'landingUrl'), value: landingUrl }] : []),
+  ];
+
+  function applyPreset(preset: (typeof SIZE_PRESETS)[number]) {
+    setWidth(preset.width);
+    setHeight(preset.height);
+  }
+
+  return (
+    <section className="banner-builder" aria-labelledby="banner-builder-title">
+      <div className="section-heading">
+        <div>
+          <h2 id="banner-builder-title">배너</h2>
+          <p>구좌를 골라 값을 채웁니다. 이미지·노출기간·사용여부는 어드민에서 직접 설정하세요.</p>
+        </div>
+      </div>
+
+      <div className="form-grid">
+        <fieldset className="field-group">
+          <legend>배너 종류</legend>
+          <div className="segmented">
+            <button className="segmented__button" data-active={mode === 'main'} onClick={() => setMode('main')} type="button">
+              메인
+            </button>
+            <button className="segmented__button" data-active={mode === 'strip'} onClick={() => setMode('strip')} type="button">
+              띠
+            </button>
+          </div>
+        </fieldset>
+
+        <div className="field">
+          <label htmlFor="banner-account-no">구좌 번호</label>
+          <small className="field-hint" id="banner-account-no-hint">
+            채울 구좌 순번. 메인은 1·2, 띠는 1~20.
+          </small>
+          <input
+            aria-describedby="banner-account-no-hint"
+            id="banner-account-no"
+            min={1}
+            onChange={(event) => setAccountNo(Number(event.target.value))}
+            type="number"
+            value={accountNo}
+          />
+        </div>
+
+        <div className="field field--wide">
+          <label htmlFor="banner-account-name">구좌명</label>
+          <small className="field-hint" id="banner-account-name-hint">
+            {mode === 'strip' ? (
+              <>
+                연결할 <strong>진열 ID</strong>를 그대로 입력하세요. 해당 진열 하단에 배너가 노출됩니다. 예:{' '}
+                <code>c_1_p_t_병부장</code>
+              </>
+            ) : (
+              <>MD 식별용 이름(앱 미사용). 예: 스토어_메인배너</>
+            )}
+          </small>
+          <input
+            aria-describedby="banner-account-name-hint"
+            id="banner-account-name"
+            onChange={(event) => setAccountName(event.target.value)}
+            value={accountName}
+          />
+        </div>
+
+        {mode === 'main' && (
+          <fieldset className="field-group field-group--wide">
+            <legend>사이즈</legend>
+            <div className="segmented">
+              {SIZE_PRESETS.map((preset) => (
+                <button
+                  className="segmented__button"
+                  data-active={width === preset.width && height === preset.height}
+                  key={preset.label}
+                  onClick={() => applyPreset(preset)}
+                  type="button"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+            <div className="size-inputs">
+              <label className="field" htmlFor="banner-width">
+                <span>가로</span>
+                <input id="banner-width" inputMode="numeric" onChange={(event) => setWidth(event.target.value)} value={width} />
+              </label>
+              <label className="field" htmlFor="banner-height">
+                <span>세로</span>
+                <input id="banner-height" inputMode="numeric" onChange={(event) => setHeight(event.target.value)} value={height} />
+              </label>
+            </div>
+          </fieldset>
+        )}
+
+        {mode === 'strip' && (
+          <p className="banner-note" role="note">
+            띠 배너는 이미지 비율 설정이 무시됩니다(가로·세로 입력해도 적용 안 됨).
+          </p>
+        )}
+
+        <div className="field field--wide">
+          <label htmlFor="banner-landing">랜딩 URL</label>
+          <small className="field-hint" id="banner-landing-hint">
+            배너 클릭 시 이동할 URL. 앱 개발자와 사전 협의가 필요합니다.
+          </small>
+          <input
+            aria-describedby="banner-landing-hint"
+            id="banner-landing"
+            onChange={(event) => setLandingUrl(event.target.value)}
+            placeholder="https://"
+            value={landingUrl}
+          />
+        </div>
+      </div>
+
+      {stripIdInvalid && (
+        <ul className="issue-list" aria-label="구좌명 검증 결과">
+          <li data-severity="error">
+            <strong>오류 1</strong> · 연결할 진열 ID 형식이 올바르지 않습니다. 예: <code>c_1_p_t_병부장</code>
+          </li>
+        </ul>
+      )}
+
+      <FillButton disabled={disabled} fields={fields} message="fillBanner" />
+    </section>
+  );
+}

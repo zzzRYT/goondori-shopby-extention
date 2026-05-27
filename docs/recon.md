@@ -59,11 +59,26 @@
 
 > 노출여부/진열순서는 라디오·수동진열 UI라 자동 채움 대상에서 제외(사람이 설정).
 
-### 배너 수정 (`/appearance/custom/headless-banners/edit`) — 미확정
+### 배너 수정 (`/appearance/custom/headless-banners/edit`)
 
-- `name` 속성은 `groupNo` 1개뿐. 구좌("구좌 1")·콘텐츠("배너 콘텐츠 1") 반복 블록.
-- 핵심 필드: 구좌명(`구좌명을 입력 해주세요` placeholder), 사이즈(16:9/3:2 토글), 노출 설정,
-  노출 기간, 랜딩 URL(`랜딩 URL` th). 라벨/placeholder 기준 셀렉터 전략 필요. → Stage 6.
+> 정정: 초기에 "안정 name 없음"으로 봤으나 **오판**이었다. `<input>`과 `name=`이
+> 여러 줄로 나뉘어 단일 줄 grep이 놓쳤을 뿐, 실제로는 인덱스 dotted `name`이 있다.
+
+구좌(account) 0/1 두 개, 각 구좌에 콘텐츠(banners.0)가 달린 구조.
+
+| 레벨 | 필드 | 셀렉터 (`i` = 구좌 인덱스 0·1) |
+|---|---|---|
+| 구좌 | 구좌명 | `input[name="accounts.{i}.accountName"]` |
+| 구좌 | 사이즈 가로/세로 | `input[name="accounts.{i}.width"]` / `.height` |
+| 콘텐츠 | 콘텐츠명 | `input[name="accounts.{i}.banners.0.bannerName"]` |
+| 콘텐츠 | 랜딩 URL | `input[name="accounts.{i}.banners.0.landingUrlValue.landingUrl"]` |
+| 콘텐츠 | 동영상 URL | `input[name="accounts.{i}.banners.0.videoUrl"]` |
+| 콘텐츠 | 추가입력항목 | `input[name="accounts.{i}.banners.0.extraInfo"]` |
+
+- 사용 여부(구좌별 라디오 Y/N), 노출 설정(랜덤/순차 버튼), 노출 기간(날짜+요일),
+  이미지 업로드는 단순 텍스트 채움 대상 아님 → 사람이 설정.
+- 메인 배너: 16:9 1개 + 3:2 1개 중 **하나만** 사용(구좌 인덱스 선택 필요).
+- 띠 배너: `accountName`에 **연결할 진열 ID**를 넣음(자유입력 아님). 비율 무시.
 
 ### 브랜드 관리 (`/product/categorization/brand`)
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DisplayBuilder } from './ui/DisplayBuilder';
 import { Tabs, type TabItem } from './ui/Tabs';
 
 const TABS: TabItem[] = [
@@ -23,10 +24,7 @@ export default function App() {
 
       <section className="app__workspace" aria-label="작업 영역">
         {activeTab === 'display' && (
-          <div className="empty-pane">
-            <h2>진열 ID</h2>
-            <p>DisplayBuilder 영역</p>
-          </div>
+          <DisplayBuilder />
         )}
         {activeTab === 'banner' && (
           <div className="empty-pane">

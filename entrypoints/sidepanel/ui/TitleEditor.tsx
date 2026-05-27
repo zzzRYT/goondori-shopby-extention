@@ -36,24 +36,45 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
       </div>
 
       <div className="form-grid">
-        <label className="field field--wide">
-          <span>진열명</span>
-          <input onChange={(event) => setTitle(event.target.value)} value={title} />
-        </label>
-
-        <label className="field field--wide">
-          <span>색상 규칙</span>
+        <div className="field field--wide">
+          <label htmlFor="title-editor-name">진열명</label>
+          <small className="field-hint" id="title-editor-name-hint">
+            앱에 그대로 노출됩니다. <code>{'{이름}'}</code> 예약어는 로그인 사용자 이름으로 치환돼요.
+          </small>
           <input
+            aria-describedby="title-editor-name-hint"
+            id="title-editor-name"
+            onChange={(event) => setTitle(event.target.value)}
+            value={title}
+          />
+        </div>
+
+        <div className="field field--wide">
+          <label htmlFor="title-editor-color">색상 규칙</label>
+          <small className="field-hint" id="title-editor-color-hint">
+            <code>단어#HEX</code> 형식, 쉼표로 여러 개. 진열명에 있는 단어만 색칠됩니다. 예: <code>군인#008000, 꿀템#FFFF00</code>
+          </small>
+          <input
+            aria-describedby="title-editor-color-hint"
+            id="title-editor-color"
             onChange={(event) => setColorSpec(event.target.value)}
             placeholder="군인#008000, 꿀템#FFFF00"
             value={colorSpec}
           />
-        </label>
+        </div>
 
-        <label className="field field--wide">
-          <span>미리보기 이름</span>
-          <input onChange={(event) => setPreviewName(event.target.value)} value={previewName} />
-        </label>
+        <div className="field field--wide">
+          <label htmlFor="title-editor-preview-name">미리보기 이름</label>
+          <small className="field-hint" id="title-editor-preview-name-hint">
+            <code>{'{이름}'}</code> 치환 결과를 미리 보기 위한 값입니다. 저장값엔 영향 없어요.
+          </small>
+          <input
+            aria-describedby="title-editor-preview-name-hint"
+            id="title-editor-preview-name"
+            onChange={(event) => setPreviewName(event.target.value)}
+            value={previewName}
+          />
+        </div>
       </div>
 
       <div className="title-preview">

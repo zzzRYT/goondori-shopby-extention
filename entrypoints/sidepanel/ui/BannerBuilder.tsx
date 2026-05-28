@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { parseDisplayId } from '../../../lib/display-id';
 import type { FillField } from '../../../lib/messaging';
 import { bannerRadioKey } from '../../../lib/shopby/banner-radios';
 import { EXPOSURE_METHOD_KEY } from '../../../lib/shopby/exposure';
 import { bannerFieldKey } from '../../../lib/shopby/selectors';
 import { FillButton } from './FillButton';
+import { SectionPicker } from './SectionPicker';
 
 type BannerMode = 'main' | 'strip';
 type UseValue = '' | 'Y' | 'N';
@@ -28,7 +28,6 @@ export function BannerBuilder() {
   const [exposureMethod, setExposureMethod] = useState<ExposureValue>('');
 
   const index = Math.max(0, accountNo - 1);
-  const stripIdInvalid = mode === 'strip' && accountName.trim().length > 0 && !parseDisplayId(accountName).ok;
 
   const fields: FillField[] = [
     ...(accountName.trim() ? [{ key: bannerFieldKey(index, 'accountName'), value: accountName }] : []),
@@ -39,7 +38,7 @@ export function BannerBuilder() {
     ...(landingUrl.trim() ? [{ key: bannerFieldKey(index, 'landingUrl'), value: landingUrl }] : []),
   ];
 
-  const disabled = fields.length === 0 || stripIdInvalid;
+  const disabled = fields.length === 0;
 
   function applyPreset(preset: (typeof SIZE_PRESETS)[number]) {
     setWidth(preset.width);
@@ -84,23 +83,28 @@ export function BannerBuilder() {
         </div>
 
         <div className="field field--wide">
-          <label htmlFor="banner-account-name">구좌명</label>
-          <small className="field-hint" id="banner-account-name-hint">
-            {mode === 'strip' ? (
-              <>
-                연결할 <strong>진열 ID</strong>를 그대로 입력하세요. 해당 진열 하단에 배너가 노출됩니다. 예:{' '}
-                <code>c_1_p_t_병부장</code>
-              </>
-            ) : (
-              <>MD 식별용 이름(앱 미사용). 예: 스토어_메인배너</>
-            )}
-          </small>
-          <input
-            aria-describedby="banner-account-name-hint"
-            id="banner-account-name"
-            onChange={(event) => setAccountName(event.target.value)}
-            value={accountName}
-          />
+          {mode === 'strip' ? (
+            <>
+              <span>연결할 진열</span>
+              <small className="field-hint">
+                연결할 <strong>진열</strong>을 선택하세요. 해당 진열 하단에 배너가 노출됩니다.
+              </small>
+              <SectionPicker onChange={setAccountName} value={accountName} />
+            </>
+          ) : (
+            <>
+              <label htmlFor="banner-account-name">구좌명</label>
+              <small className="field-hint" id="banner-account-name-hint">
+                MD 식별용 이름(앱 미사용). 예: 스토어_메인배너
+              </small>
+              <input
+                aria-describedby="banner-account-name-hint"
+                id="banner-account-name"
+                onChange={(event) => setAccountName(event.target.value)}
+                value={accountName}
+              />
+            </>
+          )}
         </div>
 
         <fieldset className="field-group field-group--wide">
@@ -202,14 +206,6 @@ export function BannerBuilder() {
           />
         </div>
       </div>
-
-      {stripIdInvalid && (
-        <ul className="issue-list" aria-label="구좌명 검증 결과">
-          <li data-severity="error">
-            <strong>오류 1</strong> · 연결할 진열 ID 형식이 올바르지 않습니다. 예: <code>c_1_p_t_병부장</code>
-          </li>
-        </ul>
-      )}
 
       <FillButton disabled={disabled} fields={fields} message="fillBanner" />
 

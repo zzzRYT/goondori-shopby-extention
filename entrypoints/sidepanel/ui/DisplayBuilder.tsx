@@ -7,6 +7,7 @@ import {
   type Method,
   type UserTypeChar,
 } from '../../../lib/display-id';
+import { BrandPicker } from './BrandPicker';
 import { UserTypeChips } from './UserTypeChips';
 
 type DisplayType = DisplaySpec['type'];
@@ -170,10 +171,10 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
         )}
 
         {type === 'b' && (
-          <label className="field field--wide">
-            <span>브랜드 번호</span>
-            <input inputMode="numeric" onChange={(event) => setBrandNo(event.target.value)} value={brandNo} />
-          </label>
+          <div className="field field--wide">
+            <span>브랜드</span>
+            <BrandPicker onChange={setBrandNo} value={brandNo} />
+          </div>
         )}
 
         {type === 'n' && (

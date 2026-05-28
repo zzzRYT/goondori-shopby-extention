@@ -1,4 +1,5 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
+import { startBannerAnchor } from './content/banner-anchor';
 import { openBrandEditor } from '../lib/shopby/brand-editor-open';
 import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
 import {
@@ -22,6 +23,7 @@ export default defineContentScript({
       openBrandEditor(document, message.data),
     );
     startExtraInfoGuide(document);
+    startBannerAnchor();
   },
 });
 

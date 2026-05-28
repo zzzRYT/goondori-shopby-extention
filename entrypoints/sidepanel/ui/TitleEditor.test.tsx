@@ -47,33 +47,16 @@ describe('TitleEditor', () => {
     });
   });
 
-  it('칩 색을 "색 없음"으로 바꾸면 직렬화에서 빠진다', () => {
+  it('칩의 컬러 피커로 색을 바꾸면 직렬화에 반영된다', () => {
     const onChange = vi.fn();
     render(<TitleEditor onChange={onChange} />);
 
     setTitle('군인을 위한 꿀템');
     addWord('군인');
-    fireEvent.click(screen.getByLabelText('군인 색 변경'));
-    fireEvent.click(screen.getByText('색 없음'));
+    fireEvent.change(screen.getByLabelText('군인 색 변경'), { target: { value: '#123456' } });
 
     expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ title: '군인을 위한 꿀템', color: '' }),
-    );
-  });
-
-  it('기존 색상 규칙 원문을 붙여넣으면 칩으로 복원한다', () => {
-    const onChange = vi.fn();
-    render(<TitleEditor onChange={onChange} />);
-
-    setTitle('군인을 위한 꿀템');
-    fireEvent.change(screen.getByLabelText('기존 색상 규칙 불러오기'), {
-      target: { value: '군인#008000, 꿀템#FFFF00' },
-    });
-
-    expect(screen.getByLabelText('군인 색 변경')).toBeTruthy();
-    expect(screen.getByLabelText('꿀템 색 변경')).toBeTruthy();
-    expect(onChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ color: '군인#008000, 꿀템#FFFF00' }),
+      expect.objectContaining({ title: '군인을 위한 꿀템', color: '군인#123456' }),
     );
   });
 });

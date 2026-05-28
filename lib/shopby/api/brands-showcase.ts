@@ -80,3 +80,10 @@ export async function fetchDisplayBrandDetails(
     return entry ? [entry] : [];
   });
 }
+
+// 브랜드 탭 진입 시 호출하는 통합 진입점. 카탈로그 brandNo를 모두 모은 뒤
+// 청크로 상세(extraInfo·이미지)를 받아 단일 ShowcaseBrand[]로 반환한다.
+export async function fetchShowcaseBrands(clientId: string = SHOPBY_CLIENT_ID): Promise<ShowcaseBrand[]> {
+  const brandNos = await searchAllBrands(clientId);
+  return fetchDisplayBrandDetails(brandNos, clientId);
+}

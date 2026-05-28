@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchDisplayBrandDetails, searchAllBrands } from './brands-showcase';
+import { fetchDisplayBrandDetails, fetchShowcaseBrands, searchAllBrands } from './brands-showcase';
 
 function page(nos: number[]) {
   return new Response(JSON.stringify({ items: nos.map((brandNo) => ({ brandNo })) }), { status: 200 });
@@ -103,5 +103,37 @@ describe('fetchDisplayBrandDetails', () => {
     const [entry] = await fetchDisplayBrandDetails([9], 'client');
 
     expect(entry).toEqual({ brandNo: 9, name: '브랜드 #9', extraInfo: '', imageUrl: '' });
+  });
+});
+
+describe('fetchShowcaseBrands', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('searchAllBrands → fetchDisplayBrandDetails 순서로 호출하고 결과를 그대로 반환한다', async () => {
+    const calls: string[] = [];
+    const spy = vi.fn((input: URL) => {
+      const url = new URL(input);
+      calls.push(url.pathname);
+      if (url.pathname === '/brands/search') {
+        return Promise.resolve(new Response(JSON.stringify({ items: [{ brandNo: 1 }, { brandNo: 2 }] }), { status: 200 }));
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            items: [
+              { brandNo: 1, name: '브랜드1', extraInfo: 'c_1', displayAreaContentUrl: '' },
+              { brandNo: 2, name: '브랜드2', extraInfo: '', displayAreaContentUrl: '' },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+    });
+    vi.stubGlobal('fetch', spy);
+
+    const result = await fetchShowcaseBrands('client');
+
+    expect(calls).toEqual(['/brands/search', '/display/brands/search-by-nos']);
+    expect(result.map((b) => b.brandNo)).toEqual([1, 2]);
   });
 });

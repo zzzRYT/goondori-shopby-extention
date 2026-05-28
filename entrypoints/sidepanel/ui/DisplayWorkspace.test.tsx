@@ -21,7 +21,10 @@ describe('DisplayWorkspace', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '병' }));
     fireEvent.change(screen.getByLabelText('진열명'), { target: { value: '군인을 위한 꿀템' } });
-    fireEvent.change(screen.getByLabelText('색상 규칙'), { target: { value: '군인#008000' } });
+    // 색은 칩 + 팔레트 UX로 입력한다. 단어를 추가하면 팔레트[0]=#008000이 자동 배정돼 "군인#008000"이 된다.
+    const wordInput = screen.getByLabelText('강조 단어 추가');
+    fireEvent.change(wordInput, { target: { value: '군인' } });
+    fireEvent.keyDown(wordInput, { key: 'Enter' });
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
     expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [

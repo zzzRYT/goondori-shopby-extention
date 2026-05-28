@@ -1,6 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import { parseColorSpec, previewTitle, type ColorRule } from '../../../lib/display-id';
+import {
+  DEFAULT_PALETTE,
+  parseColorSpec,
+  previewTitle,
+  recoverChips,
+  serializeChips,
+  type ColorChip,
+  type ColorRule,
+} from '../../../lib/display-id';
+import { ColorPalette } from './ColorPalette';
+import { WordChips } from './WordChips';
 
 export type TitleResult = { title: string; color: string; hasError: boolean };
 
@@ -10,9 +20,15 @@ type TitleEditorProps = {
 
 export function TitleEditor({ onChange }: TitleEditorProps) {
   const [title, setTitle] = useState('');
-  const [colorSpec, setColorSpec] = useState('');
+  const [chips, setChips] = useState<ColorChip[]>([]);
+  const [palette, setPalette] = useState<string[]>(DEFAULT_PALETTE);
   const [previewName, setPreviewName] = useState('지성현');
+  const [restoreSpec, setRestoreSpec] = useState('');
 
+  // 저장값은 지금처럼 "단어#HEX, …" 문자열. 칩에서 직렬화해 만든다(설계 §7).
+  const colorSpec = useMemo(() => serializeChips(chips), [chips]);
+
+  // 프리뷰·경고는 기존 파서를 그대로 재사용한다(진열명에 없는 단어 = 경고 등).
   const colorResult = useMemo(() => parseColorSpec(colorSpec, title), [colorSpec, title]);
   const rules = colorResult.ok ? colorResult.value : [];
   const issues = colorResult.ok ? [] : colorResult.issues;
@@ -25,6 +41,12 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
     // 진열 상세설명(sectionExplain) 필드에는 색상 규칙 원문을 그대로 채운다.
     onChange({ title, color: colorSpec, hasError });
   }, [title, colorSpec, hasError, onChange]);
+
+  function restoreFromSpec(value: string) {
+    setRestoreSpec(value);
+    // 기존 원문을 1회 파싱해 칩으로 복원한다. 유효 칩만 살리고, 진열명 경고는 프리뷰가 표시.
+    setChips(recoverChips(value));
+  }
 
   return (
     <section className="title-editor" aria-labelledby="title-editor-title">
@@ -51,16 +73,30 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
         </div>
 
         <div className="field field--wide">
-          <label htmlFor="title-editor-color">색상 규칙</label>
-          <small className="field-hint" id="title-editor-color-hint">
-            <code>단어#HEX</code> 형식, 쉼표로 여러 개. 진열명에 있는 단어만 색칠됩니다. 예: <code>군인#008000, 꿀템#FFFF00</code>
+          <span className="field-label">강조 단어</span>
+          <small className="field-hint">
+            단어를 추가하면 팔레트 색이 자동 배정됩니다. 색 스와치를 눌러 단어별로 바꿀 수 있어요. 진열명에 있는 단어만 색칠됩니다.
+          </small>
+          <WordChips chips={chips} onChange={setChips} palette={palette} />
+        </div>
+
+        <div className="field field--wide">
+          <span className="field-label">팔레트</span>
+          <small className="field-hint">자동 배정과 색 선택에 쓰는 프리셋이에요. 이 창에서만 바꿀 수 있고 저장하진 않아요.</small>
+          <ColorPalette onChange={setPalette} palette={palette} />
+        </div>
+
+        <div className="field field--wide">
+          <label htmlFor="title-editor-restore">기존 색상 규칙 불러오기</label>
+          <small className="field-hint" id="title-editor-restore-hint">
+            저장돼 있던 <code>단어#HEX, …</code> 원문을 붙여넣으면 칩으로 복원됩니다. 예: <code>군인#008000, 꿀템#FFFF00</code>
           </small>
           <input
-            aria-describedby="title-editor-color-hint"
-            id="title-editor-color"
-            onChange={(event) => setColorSpec(event.target.value)}
+            aria-describedby="title-editor-restore-hint"
+            id="title-editor-restore"
+            onChange={(event) => restoreFromSpec(event.target.value)}
             placeholder="군인#008000, 꿀템#FFFF00"
-            value={colorSpec}
+            value={restoreSpec}
           />
         </div>
 
@@ -83,7 +119,7 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <span>프리뷰</span>
           <ValidationBadge errors={errors.length} warnings={warnings.length} />
         </div>
-        <p>{renderColoredPreview(preview, rules)}</p>
+        <p aria-label="색상 프리뷰">{renderColoredPreview(preview, rules)}</p>
       </div>
 
       {issues.length > 0 && (

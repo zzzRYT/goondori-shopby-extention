@@ -12,6 +12,10 @@ function addWord(word: string) {
   fireEvent.keyDown(input, { key: 'Enter' });
 }
 
+function setPreviewName(value: string) {
+  fireEvent.change(screen.getByLabelText('미리보기 이름'), { target: { value } });
+}
+
 describe('TitleEditor', () => {
   it('단어를 추가하면 프리뷰에 자동 배정된 색이 입혀진다', () => {
     const { container } = render(<TitleEditor onChange={() => {}} />);
@@ -58,5 +62,36 @@ describe('TitleEditor', () => {
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ title: '군인을 위한 꿀템', color: '군인#123456' }),
     );
+  });
+
+  it('칩의 단어가 {이름} 예약어면 치환된 사용자 이름이 강조된다', () => {
+    const { container } = render(<TitleEditor onChange={() => {}} />);
+
+    setTitle('{이름}님을 위한 추천');
+    addWord('{이름}');
+
+    const colored = container.querySelector('.title-preview span[style*="#008000"]');
+    expect(colored?.textContent).toBe('지성현');
+  });
+
+  it('미리보기 이름이 비면 {이름} 칩은 OOO를 강조한다', () => {
+    const { container } = render(<TitleEditor onChange={() => {}} />);
+
+    setTitle('{이름}님을 위한 추천');
+    addWord('{이름}');
+    setPreviewName('');
+
+    const colored = container.querySelector('.title-preview span[style*="#008000"]');
+    expect(colored?.textContent).toBe('OOO');
+  });
+
+  it('진열명에 {이름} 토큰이 있어도 일반 단어 칩은 강조된다', () => {
+    const { container } = render(<TitleEditor onChange={() => {}} />);
+
+    setTitle('{이름}님을 위한 추천');
+    addWord('추천');
+
+    const colored = container.querySelector('.title-preview span[style*="#008000"]');
+    expect(colored?.textContent).toBe('추천');
   });
 });

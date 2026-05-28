@@ -88,7 +88,7 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <span>프리뷰</span>
           <ValidationBadge errors={errors.length} warnings={warnings.length} />
         </div>
-        <p aria-label="색상 프리뷰">{renderColoredPreview(preview, rules)}</p>
+        <p aria-label="색상 프리뷰">{renderColoredPreview(preview, rules, previewName)}</p>
       </div>
 
       {issues.length > 0 && (
@@ -104,14 +104,14 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
   );
 }
 
-function renderColoredPreview(preview: string, rules: ColorRule[]) {
+function renderColoredPreview(preview: string, rules: ColorRule[], previewName: string) {
   if (rules.length === 0) return preview || ' ';
 
   const segments: ReactNode[] = [];
   let cursor = 0;
 
   while (cursor < preview.length) {
-    const next = findNextRule(preview, rules, cursor);
+    const next = findNextRule(preview, rules, cursor, previewName);
     if (!next) {
       segments.push(preview.slice(cursor));
       break;
@@ -126,22 +126,29 @@ function renderColoredPreview(preview: string, rules: ColorRule[]) {
         key={`${next.rule.word}-${next.index}`}
         style={{ '--title-color': next.rule.hex, color: 'var(--title-color)' } as CSSProperties}
       >
-        {next.rule.word}
+        {next.resolved}
       </span>,
     );
-    cursor = next.index + next.rule.word.length;
+    cursor = next.index + next.resolved.length;
   }
 
   return segments;
 }
 
-function findNextRule(preview: string, rules: ColorRule[], cursor: number) {
-  let match: { index: number; rule: ColorRule } | undefined;
+function findNextRule(
+  preview: string,
+  rules: ColorRule[],
+  cursor: number,
+  previewName: string,
+) {
+  let match: { index: number; rule: ColorRule; resolved: string } | undefined;
 
   for (const rule of rules) {
-    const index = preview.indexOf(rule.word, cursor);
+    const resolved = previewTitle(rule.word, previewName);
+    if (!resolved) continue;
+    const index = preview.indexOf(resolved, cursor);
     if (index < 0) continue;
-    if (!match || index < match.index) match = { index, rule };
+    if (!match || index < match.index) match = { index, rule, resolved };
   }
 
   return match;

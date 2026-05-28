@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BannerBuilder } from './ui/BannerBuilder';
+import { BrandShowcase } from './ui/BrandShowcase';
 import { DisplayWorkspace } from './ui/DisplayWorkspace';
 import { Tabs, type TabItem } from './ui/Tabs';
 
@@ -26,12 +27,7 @@ export default function App() {
       <section className="app__workspace" aria-label="작업 영역">
         {activeTab === 'display' && <DisplayWorkspace />}
         {activeTab === 'banner' && <BannerBuilder />}
-        {activeTab === 'brand' && (
-          <div className="empty-pane">
-            <h2>브랜드</h2>
-            <p>BrandMap 영역</p>
-          </div>
-        )}
+        {activeTab === 'brand' && <BrandShowcase />}
       </section>
     </main>
   );

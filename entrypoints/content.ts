@@ -1,5 +1,6 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
 import { fillBannerRadios, isBannerRadioKey } from '../lib/shopby/banner-radios';
+import { fillDisplayRadios, isDisplayRadioKey } from '../lib/shopby/display-radios';
 import { fillExposure } from '../lib/shopby/exposure';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { BANNER_FIELD_MAP, DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
@@ -10,21 +11,30 @@ export default defineContentScript({
   matches: ['https://enterprise-remote.shopby.co.kr/*', 'https://popup-remote.shopby.co.kr/*'],
   allFrames: true,
   main() {
-    onMessage('fillDisplay', (message) => fillShopbyFields(DISPLAY_FIELD_MAP, message.data));
+    onMessage('fillDisplay', (message) => fillDisplayFields(message.data));
     onMessage('fillBanner', (message) => fillBannerFields(message.data));
     onMessage('fillExposure', (message) => fillExposureFields(message.data));
     onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
   },
 });
 
-function fillShopbyFields(fieldMap: FieldMap, fields: FillField[]): FillResult {
+function fillDisplayFields(fields: FillField[]): FillResult {
   if (!isShopbyAdminHost(location.hostname)) {
     return adminHostError(fields);
   }
 
-  const result = fillByMap(document, fieldMap, fields);
-  highlightResult(fieldMap, result);
-  return result;
+  // 노출여부는 라디오(별도 채움 경로), 그 외는 텍스트 input 셀렉터 맵.
+  const radioFields = fields.filter((field) => isDisplayRadioKey(field.key));
+  const textFields = fields.filter((field) => !isDisplayRadioKey(field.key));
+
+  const textResult = fillByMap(document, DISPLAY_FIELD_MAP, textFields);
+  highlightResult(DISPLAY_FIELD_MAP, textResult);
+  const radioResult = fillDisplayRadios(document, radioFields);
+
+  return {
+    filled: [...textResult.filled, ...radioResult.filled],
+    failed: [...textResult.failed, ...radioResult.failed],
+  };
 }
 
 function fillBannerFields(fields: FillField[]): FillResult {

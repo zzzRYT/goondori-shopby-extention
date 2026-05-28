@@ -110,6 +110,7 @@
 - 브랜드 상세 폼: `input[name="brandInfo.mainBrandName"]`, 브랜드 번호는 `<td>43186744</td>` 텍스트.
 - 좌측 브랜드 목록(버튼 204개)에 이름+번호 존재 → API 없어도 `AdminPageBrandSource`(HTML 파싱) 가능.
 - 단, 더 안정적인 API가 있는지 Network 탭 확인 필요(미답).
+- 브랜드 수정 페이지 "추가 설명"(extraInfo) 입력란: `textarea[name="extraInfo"]` (예측 셀렉터, 실제 확인 후 갱신). 군돌이 토큰 가이드 inject 대상.
 
 ## 브랜드 소스 (Stage 5 분기) — 미확정
 

@@ -1,7 +1,7 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
+import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
-import { startBannerAnchor } from './content/banner-anchor';
 
 export default defineContentScript({
   // 정찰(docs/recon.md): 어드민 폼은 *.shopby.co.kr 도메인에서 렌더된다.
@@ -11,11 +11,11 @@ export default defineContentScript({
   matches: ['https://*.shopby.co.kr/*'],
   allFrames: true,
   main() {
-    onMessage('fillDisplay', (message) => fillShopbyFields(DISPLAY_FIELD_MAP, message.data));
+    onMessage('fillDisplay', (message) =>
+      fillShopbyFields(DISPLAY_FIELD_MAP, message.data),
+    );
     onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
-
-    // 띠 배너 페이지의 accountName input 옆에 진열 선택 위젯을 부착.
-    startBannerAnchor();
+    startExtraInfoGuide(document);
   },
 });
 
@@ -32,7 +32,10 @@ function fillShopbyFields(fieldMap: FieldMap, fields: FillField[]): FillResult {
 function adminHostError(fields: FillField[]): FillResult {
   return {
     filled: [],
-    failed: fields.map((field) => ({ key: field.key, reason: '어드민 페이지에서 열어주세요' })),
+    failed: fields.map((field) => ({
+      key: field.key,
+      reason: '어드민 페이지에서 열어주세요',
+    })),
   };
 }
 
@@ -78,7 +81,9 @@ function isShopbyAdminHost(hostname: string) {
   return hostname.endsWith('.shopby.co.kr') || hostname.endsWith('.e-ncp.com');
 }
 
-function isReadableElement(element: Element | null): element is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
+function isReadableElement(
+  element: Element | null,
+): element is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
   return (
     element instanceof HTMLInputElement ||
     element instanceof HTMLTextAreaElement ||

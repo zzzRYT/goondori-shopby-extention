@@ -2,32 +2,33 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BannerBuilder } from './BannerBuilder';
 import { sendMessage } from '../../../lib/messaging';
+import { fetchSections } from '../../../lib/shopby/api/sections';
 
 vi.mock('../../../lib/messaging', () => ({
   sendMessage: vi.fn(),
+}));
+
+vi.mock('../../../lib/shopby/api/sections', () => ({
+  fetchSections: vi.fn(),
 }));
 
 describe('BannerBuilder', () => {
   beforeEach(() => {
     vi.mocked(sendMessage).mockReset();
     vi.mocked(sendMessage).mockResolvedValue({ filled: [], failed: [] });
+    vi.mocked(fetchSections).mockReset();
+    vi.mocked(fetchSections).mockResolvedValue([
+      { sectionNo: 1, sectionId: 'c_1_p_t_병부장', sectionName: '베스트' },
+    ]);
   });
 
-  it('띠 모드에서 구좌명이 잘못된 진열 ID면 오류 배지를 띄우고 채우기를 막는다', () => {
+  it('띠 모드에서 진열을 선택하면 sectionId와 랜딩 URL을 fillBanner로 보낸다', async () => {
     render(<BannerBuilder />);
 
     fireEvent.click(screen.getByRole('button', { name: '띠' }));
-    fireEvent.change(screen.getByLabelText('구좌명'), { target: { value: '잘못된ID' } });
-
-    expect(screen.getByText('오류 1')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '어드민에 채우기' })).toHaveProperty('disabled', true);
-  });
-
-  it('띠 모드에서 유효한 진열 ID와 랜딩 URL을 fillBanner로 보낸다', () => {
-    render(<BannerBuilder />);
-
-    fireEvent.click(screen.getByRole('button', { name: '띠' }));
-    fireEvent.change(screen.getByLabelText('구좌명'), { target: { value: 'c_1_p_t_병부장' } });
+    const combo = await screen.findByRole('combobox', { name: '연결할 진열' });
+    fireEvent.focus(combo);
+    fireEvent.click(screen.getByRole('option', { name: /베스트/ }));
     fireEvent.change(screen.getByLabelText('랜딩 URL'), { target: { value: 'https://example.com' } });
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
@@ -76,14 +77,16 @@ describe('BannerBuilder', () => {
     ]);
   });
 
-  it('라디오를 "변경 안 함"으로 두면 라디오 키를 보내지 않는다', () => {
+  it('라디오를 "변경 안 함"으로 두면 라디오 키를 보내지 않는다', async () => {
     render(<BannerBuilder />);
 
     fireEvent.click(screen.getByRole('button', { name: '띠' }));
-    fireEvent.change(screen.getByLabelText('구좌명'), { target: { value: 'c_1_p_t_병' } });
+    const combo = await screen.findByRole('combobox', { name: '연결할 진열' });
+    fireEvent.focus(combo);
+    fireEvent.click(screen.getByRole('option', { name: /베스트/ }));
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
-    expect(sendMessage).toHaveBeenCalledWith('fillBanner', [{ key: 'account0.accountName', value: 'c_1_p_t_병' }]);
+    expect(sendMessage).toHaveBeenCalledWith('fillBanner', [{ key: 'account0.accountName', value: 'c_1_p_t_병부장' }]);
   });
 
   it('구좌명이 비어도 사용 여부만 선택하면 채울 수 있다', () => {

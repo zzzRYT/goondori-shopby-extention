@@ -468,6 +468,118 @@ textarea:focus-visible {
   overflow-wrap: anywhere;
 }
 
+.combobox {
+  position: relative;
+  display: grid;
+  gap: 7px;
+}
+
+.combobox__input {
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #101828;
+  background: #ffffff;
+}
+
+.combobox[data-open='true'] .combobox__input {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #b9d6ff;
+}
+
+.combobox__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px -12px rgba(16, 24, 40, 0.35);
+}
+
+.combobox__option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.combobox__option:hover,
+.combobox__option[data-active='true'] {
+  background: #f2f4f7;
+  color: #101828;
+}
+
+.combobox__option[aria-selected='true'] {
+  background: #e9f2ff;
+  color: #0b4aa2;
+  font-weight: 700;
+}
+
+.combobox__option-label {
+  word-break: break-all;
+}
+
+.combobox__option-hint {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 11px;
+}
+
+.combobox__empty {
+  padding: 10px;
+  color: #667085;
+  font-size: 12px;
+  text-align: center;
+}
+
+.combobox[data-state='error'] {
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  background: #fffbfa;
+}
+
+.combobox__error {
+  margin: 0;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.combobox__retry {
+  justify-self: start;
+  min-height: 30px;
+  border: 1px solid #fda29b;
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #b42318;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.combobox__retry:hover {
+  background: #fef3f2;
+}
+
 /* 색 스와치 — <label>이 현재 색으로 채워진 동그라미로 보이고,
    안쪽 <input type="color">는 투명하게 덮어 클릭 영역만 제공한다. */
 .swatch {

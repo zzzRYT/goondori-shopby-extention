@@ -43,12 +43,13 @@ describe('BrandShowcase', () => {
 
     render(<BrandShowcase />);
 
-    await waitFor(() => expect(screen.getByText('브랜드1')).toBeTruthy());
-    expect(screen.getByLabelText('노출 슬롯 1').textContent).toBe('c_1');
+    // carousel과 list 양쪽에 같은 브랜드/슬롯 라벨이 노출된다 → getAll로 매칭.
+    await waitFor(() => expect(screen.getAllByText('브랜드1').length).toBeGreaterThan(0));
+    expect(screen.getAllByLabelText('노출 슬롯 1').map((el) => el.textContent)).toEqual(['c_1', 'c_1']);
 
     fireEvent.click(screen.getByRole('button', { name: '개발(dev)' }));
 
-    expect(screen.getByLabelText('노출 슬롯 2').textContent).toBe('ct_2');
+    expect(screen.getAllByLabelText('노출 슬롯 2').map((el) => el.textContent)).toEqual(['ct_2', 'ct_2']);
     expect(spy).toHaveBeenCalledTimes(1); // 재요청 없음
   });
 });

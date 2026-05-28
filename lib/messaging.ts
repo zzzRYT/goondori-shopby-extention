@@ -7,9 +7,23 @@ export type FillResult = {
   failed: { key: string; reason: string }[];
 };
 
+export type OpenBrandEditorRequest = {
+  name: string;
+  brandNo: number;
+};
+
+export type OpenBrandEditorStatus = 'opened' | 'not-found' | 'wrong-host';
+
+export type OpenBrandEditorResult = {
+  status: OpenBrandEditorStatus;
+  message?: string;
+};
+
 interface Protocol {
   fillDisplay(fields: FillField[]): FillResult;
   readCurrentDisplay(): Record<string, string>;
+  // 브랜드 탭 row 클릭 → 관리자 탭의 브랜드 트리에서 해당 브랜드 선택.
+  openBrandEditor(request: OpenBrandEditorRequest): OpenBrandEditorResult;
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<Protocol>();

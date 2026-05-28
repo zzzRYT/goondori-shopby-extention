@@ -1,4 +1,5 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
+import { openBrandEditor } from '../lib/shopby/brand-editor-open';
 import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
@@ -15,6 +16,9 @@ export default defineContentScript({
       fillShopbyFields(DISPLAY_FIELD_MAP, message.data),
     );
     onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
+    onMessage('openBrandEditor', (message) =>
+      openBrandEditor(document, message.data),
+    );
     startExtraInfoGuide(document);
   },
 });

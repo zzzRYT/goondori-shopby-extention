@@ -4,7 +4,8 @@ import type { ShowcaseBrand } from './types';
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 50;
-export const BRAND_DETAIL_CHUNK_SIZE = 100;
+// /display/brands/search-by-nos는 한 호출당 최대 20개 브랜드까지만 받는다.
+export const BRAND_DETAIL_CHUNK_SIZE = 20;
 
 type SearchItem = { brandNo: number; mainBrandName?: string | null };
 // /display/brands/search 응답은 items 래핑 없이 배열 그대로 온다.
@@ -54,18 +55,27 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return out;
 }
 
+// shopby CDN은 protocol-relative URL(`//host/path`)로 응답한다. 확장 프로그램(chrome-extension://)
+// 컨텍스트에선 그대로 쓰면 chrome-extension:// 스킴으로 해석돼 깨지므로 https: 를 명시한다.
+function normalizeImageUrl(raw: string | null | undefined): string {
+  const trimmed = raw?.trim() ?? '';
+  if (!trimmed) return '';
+  if (trimmed.startsWith('//')) return `https:${trimmed}`;
+  return trimmed;
+}
+
 function normalize(item: DetailItem): ShowcaseBrand {
   const displayName = item.mainBrandName?.trim() || item.subBrandName?.trim() || `브랜드 #${item.displayBrandNo}`;
   return {
     brandNo: item.displayBrandNo,
     name: displayName,
     extraInfo: item.extraInfo ?? '',
-    imageUrl: item.displayAreaContentUrl ?? '',
+    imageUrl: normalizeImageUrl(item.displayAreaContentUrl),
   };
 }
 
 // GET /display/brands/search-by-nos — 브랜드 번호 묶음으로 상세(extraInfo·이미지) 조회.
-// 한 호출당 BRAND_DETAIL_CHUNK_SIZE 개로 청크 분할하고 병렬 실행하되,
+// 한 호출당 최대 BRAND_DETAIL_CHUNK_SIZE(=20)개로 청크 분할하고 병렬 실행하되,
 // 결과는 입력 순서대로 머지한다(UI 정렬 안정성).
 // 가정: /display/brands/search의 brandNo == search-by-nos의 displayBrandNo.
 export async function fetchDisplayBrandDetails(

@@ -3,6 +3,7 @@ import { fetchShowcaseBrands } from '../../../lib/shopby/api/brands-showcase';
 import { parseBrandSlots, type BrandEnv } from '../../../lib/shopby/brand-extra-info';
 import { useRemoteList } from '../hooks/useRemoteList';
 import { BrandShowcaseCarousel } from './BrandShowcaseCarousel';
+import { BrandShowcaseList } from './BrandShowcaseList';
 import { EnvToggle } from './EnvToggle';
 
 const ENV_LABEL: Record<BrandEnv, string> = { prod: '운영(prod)', dev: '개발(dev)' };
@@ -57,6 +58,7 @@ export function BrandShowcase() {
             {ENV_LABEL[env]} 환경에 노출 설정된 브랜드 ({assignments.length})
           </p>
           <BrandShowcaseCarousel assignments={assignments} env={env} />
+          <BrandShowcaseList assignments={assignments} env={env} />
         </>
       )}
     </section>

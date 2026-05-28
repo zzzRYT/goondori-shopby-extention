@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { fetchDisplayBrandDetails, fetchShowcaseBrands, searchAllBrands } from './brands-showcase';
+import {
+  BRAND_DETAIL_CHUNK_SIZE,
+  fetchDisplayBrandDetails,
+  fetchShowcaseBrands,
+  searchAllBrands,
+} from './brands-showcase';
 
 function searchPage(nos: number[]) {
   // /display/brands/search 응답: 배열 그대로
@@ -60,7 +65,7 @@ describe('fetchDisplayBrandDetails', () => {
     };
   }
 
-  it('100개 이하면 한 번만 호출하고 정규화한다', async () => {
+  it('청크 한도 이하면 한 번만 호출하고 정규화한다', async () => {
     const spy = vi.fn(() =>
       Promise.resolve(
         new Response(
@@ -80,23 +85,28 @@ describe('fetchDisplayBrandDetails', () => {
     ]);
   });
 
-  it('100개 초과면 청크로 나눠 병렬 호출하고 brandNo 순서로 머지한다', async () => {
-    const first = Array.from({ length: 100 }, (_, i) => i + 1);
-    const second = [101, 102];
+  it('청크 한도 초과면 청크로 나눠 병렬 호출하고 brandNo 순서로 머지한다', async () => {
+    const totalChunks = 3;
+    const tailSize = 2;
+    const all = Array.from(
+      { length: BRAND_DETAIL_CHUNK_SIZE * (totalChunks - 1) + tailSize },
+      (_, i) => i + 1,
+    );
 
     const spy = vi.fn((input: URL) => {
       const url = new URL(input);
       const nos = url.searchParams.get('displayBrandNos')!.split(',').map(Number);
+      expect(nos.length).toBeLessThanOrEqual(BRAND_DETAIL_CHUNK_SIZE);
       const brands = nos.map((no) => detail(no));
       return Promise.resolve(new Response(JSON.stringify({ brands }), { status: 200 }));
     });
     vi.stubGlobal('fetch', spy);
 
-    const result = await fetchDisplayBrandDetails([...first, ...second], 'client');
+    const result = await fetchDisplayBrandDetails(all, 'client');
 
-    expect(spy).toHaveBeenCalledTimes(2);
-    expect(result).toHaveLength(102);
-    expect(result.map((r) => r.brandNo)).toEqual([...first, ...second]);
+    expect(spy).toHaveBeenCalledTimes(totalChunks);
+    expect(result).toHaveLength(all.length);
+    expect(result.map((r) => r.brandNo)).toEqual(all);
   });
 
   it('빈 입력이면 호출 없이 빈 배열을 반환한다', async () => {
@@ -107,6 +117,40 @@ describe('fetchDisplayBrandDetails', () => {
 
     expect(spy).not.toHaveBeenCalled();
     expect(result).toEqual([]);
+  });
+
+  it('protocol-relative 이미지 URL은 https:로 보정한다', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              brands: [
+                {
+                  displayBrandNo: 7,
+                  mainBrandName: '브랜드7',
+                  extraInfo: '',
+                  displayAreaContentUrl: '//shopby-images.cdn-nhncommerce.com/path/image.png',
+                },
+                {
+                  displayBrandNo: 8,
+                  mainBrandName: '브랜드8',
+                  extraInfo: '',
+                  displayAreaContentUrl: 'https://already.example.com/x.png',
+                },
+              ],
+            }),
+            { status: 200 },
+          ),
+        ),
+      ),
+    );
+
+    const result = await fetchDisplayBrandDetails([7, 8], 'client');
+
+    expect(result[0].imageUrl).toBe('https://shopby-images.cdn-nhncommerce.com/path/image.png');
+    expect(result[1].imageUrl).toBe('https://already.example.com/x.png');
   });
 
   it('null/누락 필드는 안전한 기본값으로 정규화한다', async () => {

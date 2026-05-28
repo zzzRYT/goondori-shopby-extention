@@ -32,3 +32,6 @@ test-results/
 .vscode/*
 !.vscode/extensions.json
 *.swp
+
+# git worktrees
+.worktrees/

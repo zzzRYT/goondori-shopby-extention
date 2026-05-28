@@ -10,3 +10,12 @@ export type SectionEntry = {
   sectionId: string;
   sectionName: string;
 };
+
+// extraInfo + 썸네일을 포함한 진열 미리보기용 브랜드 엔트리.
+// /display/brands/search-by-nos 응답을 UI에 쓰기 좋게 정규화한 형태.
+export type ShowcaseBrand = {
+  brandNo: number;
+  name: string;
+  extraInfo: string;
+  imageUrl: string;
+};

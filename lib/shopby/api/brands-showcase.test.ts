@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchDisplayBrandDetails, fetchShowcaseBrands, searchAllBrands } from './brands-showcase';
 
-function page(nos: number[]) {
-  return new Response(JSON.stringify({ items: nos.map((brandNo) => ({ brandNo })) }), { status: 200 });
+function searchPage(nos: number[]) {
+  // /display/brands/search 응답: 배열 그대로
+  return new Response(JSON.stringify(nos.map((brandNo) => ({ brandNo, mainBrandName: `브랜드${brandNo}` }))), {
+    status: 200,
+  });
 }
 
 describe('searchAllBrands', () => {
@@ -10,7 +13,7 @@ describe('searchAllBrands', () => {
 
   it('가득 찬 페이지면 다음 페이지를 이어 받고 brandNo만 모은다', async () => {
     const full = Array.from({ length: 100 }, (_, i) => i + 1);
-    const responses = [page(full), page([101, 102])];
+    const responses = [searchPage(full), searchPage([101, 102])];
     const spy = vi.fn(() => Promise.resolve(responses.shift()!));
     vi.stubGlobal('fetch', spy);
 
@@ -21,7 +24,7 @@ describe('searchAllBrands', () => {
   });
 
   it('단일 페이지(100개 미만)면 한 번만 호출한다', async () => {
-    const spy = vi.fn(() => Promise.resolve(page([5, 6, 7])));
+    const spy = vi.fn(() => Promise.resolve(searchPage([5, 6, 7])));
     vi.stubGlobal('fetch', spy);
 
     const result = await searchAllBrands('client');
@@ -29,20 +32,39 @@ describe('searchAllBrands', () => {
     expect(spy).toHaveBeenCalledTimes(1);
     expect(result).toEqual([5, 6, 7]);
   });
+
+  it('쿼리에 pageSize=100 / sortCriterion=BRAND_NAME / pageNumber를 포함한다', async () => {
+    const spy = vi.fn((_input: URL) => Promise.resolve(searchPage([])));
+    vi.stubGlobal('fetch', spy);
+
+    await searchAllBrands('client');
+
+    const callUrl = new URL(spy.mock.calls[0][0]);
+    expect(callUrl.pathname).toBe('/display/brands/search');
+    expect(callUrl.searchParams.get('pageSize')).toBe('100');
+    expect(callUrl.searchParams.get('sortCriterion')).toBe('BRAND_NAME');
+    expect(callUrl.searchParams.get('pageNumber')).toBe('1');
+    // brandName='' 은 shopApiGet이 빈 문자열을 제외하므로 직렬화되지 않는다(의도된 전체 조회).
+  });
 });
 
 describe('fetchDisplayBrandDetails', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  function detail(brandNo: number, extraInfo = '', imageUrl = '') {
-    return { brandNo, name: `브랜드${brandNo}`, extraInfo, displayAreaContentUrl: imageUrl };
+  function detail(displayBrandNo: number, extraInfo = '', imageUrl = '') {
+    return {
+      displayBrandNo,
+      mainBrandName: `브랜드${displayBrandNo}`,
+      extraInfo,
+      displayAreaContentUrl: imageUrl,
+    };
   }
 
   it('100개 이하면 한 번만 호출하고 정규화한다', async () => {
     const spy = vi.fn(() =>
       Promise.resolve(
         new Response(
-          JSON.stringify({ items: [detail(1, 'c_1', 'https://img/1.png'), detail(2, 'ct_1')] }),
+          JSON.stringify({ brands: [detail(1, 'c_1', 'https://img/1.png'), detail(2, 'ct_1')] }),
           { status: 200 },
         ),
       ),
@@ -64,9 +86,9 @@ describe('fetchDisplayBrandDetails', () => {
 
     const spy = vi.fn((input: URL) => {
       const url = new URL(input);
-      const nos = url.searchParams.get('brandNos')!.split(',').map(Number);
-      const items = nos.map((no) => detail(no));
-      return Promise.resolve(new Response(JSON.stringify({ items }), { status: 200 }));
+      const nos = url.searchParams.get('displayBrandNos')!.split(',').map(Number);
+      const brands = nos.map((no) => detail(no));
+      return Promise.resolve(new Response(JSON.stringify({ brands }), { status: 200 }));
     });
     vi.stubGlobal('fetch', spy);
 
@@ -93,7 +115,17 @@ describe('fetchDisplayBrandDetails', () => {
       vi.fn(() =>
         Promise.resolve(
           new Response(
-            JSON.stringify({ items: [{ brandNo: 9, name: null, extraInfo: null, displayAreaContentUrl: null }] }),
+            JSON.stringify({
+              brands: [
+                {
+                  displayBrandNo: 9,
+                  mainBrandName: null,
+                  subBrandName: null,
+                  extraInfo: null,
+                  displayAreaContentUrl: null,
+                },
+              ],
+            }),
             { status: 200 },
           ),
         ),
@@ -114,15 +146,23 @@ describe('fetchShowcaseBrands', () => {
     const spy = vi.fn((input: URL) => {
       const url = new URL(input);
       calls.push(url.pathname);
-      if (url.pathname === '/brands/search') {
-        return Promise.resolve(new Response(JSON.stringify({ items: [{ brandNo: 1 }, { brandNo: 2 }] }), { status: 200 }));
+      if (url.pathname === '/display/brands/search') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify([
+              { brandNo: 1, mainBrandName: '브랜드1' },
+              { brandNo: 2, mainBrandName: '브랜드2' },
+            ]),
+            { status: 200 },
+          ),
+        );
       }
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            items: [
-              { brandNo: 1, name: '브랜드1', extraInfo: 'c_1', displayAreaContentUrl: '' },
-              { brandNo: 2, name: '브랜드2', extraInfo: '', displayAreaContentUrl: '' },
+            brands: [
+              { displayBrandNo: 1, mainBrandName: '브랜드1', extraInfo: 'c_1', displayAreaContentUrl: '' },
+              { displayBrandNo: 2, mainBrandName: '브랜드2', extraInfo: '', displayAreaContentUrl: '' },
             ],
           }),
           { status: 200 },
@@ -133,7 +173,7 @@ describe('fetchShowcaseBrands', () => {
 
     const result = await fetchShowcaseBrands('client');
 
-    expect(calls).toEqual(['/brands/search', '/display/brands/search-by-nos']);
+    expect(calls).toEqual(['/display/brands/search', '/display/brands/search-by-nos']);
     expect(result.map((b) => b.brandNo)).toEqual([1, 2]);
   });
 });

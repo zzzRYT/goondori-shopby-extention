@@ -6,31 +6,40 @@ const PAGE_SIZE = 100;
 const MAX_PAGES = 50;
 export const BRAND_DETAIL_CHUNK_SIZE = 100;
 
-type SearchItem = { brandNo: number };
-type SearchResponse = { items?: SearchItem[] | null };
+type SearchItem = { brandNo: number; mainBrandName?: string | null };
+// /display/brands/search 응답은 items 래핑 없이 배열 그대로 온다.
+type SearchResponse = SearchItem[];
 
 type DetailItem = {
-  brandNo: number;
-  name?: string | null;
+  displayBrandNo: number;
+  mainBrandName?: string | null;
+  subBrandName?: string | null;
   extraInfo?: string | null;
   displayAreaContentUrl?: string | null;
 };
 
-type DetailResponse = { items?: DetailItem[] | null };
+// /display/brands/search-by-nos 응답은 { brands: [...] } 래핑이다.
+type DetailResponse = { brands?: DetailItem[] | null };
 
-// GET /brands/search — 상품 카탈로그 기준 전체 브랜드 목록.
-// 페이지네이션으로 brandNo만 수집한다(상세는 별도 API에서 받는다).
+// GET /display/brands/search — 브랜드 색인(ES) 기준 전체 브랜드 목록.
+// brandName 빈 값으로 호출하면 전체 브랜드를 BRAND_NAME 정렬로 페이지네이션해 받는다.
+// 응답이 PAGE_SIZE 미만이면 마지막 페이지로 간주.
 export async function searchAllBrands(clientId: string = SHOPBY_CLIENT_ID): Promise<number[]> {
   const brandNos: number[] = [];
 
   for (let pageNumber = 1; pageNumber <= MAX_PAGES; pageNumber += 1) {
     const data = await shopApiGet<SearchResponse>(
-      '/brands/search',
-      { pageNumber, pageSize: PAGE_SIZE },
+      '/display/brands/search',
+      {
+        brandName: '',
+        pageNumber,
+        pageSize: PAGE_SIZE,
+        sortCriterion: 'BRAND_NAME',
+      },
       clientId,
     );
 
-    const items = data.items ?? [];
+    const items = Array.isArray(data) ? data : [];
     for (const item of items) brandNos.push(item.brandNo);
 
     if (items.length < PAGE_SIZE) break;
@@ -46,17 +55,19 @@ function chunk<T>(arr: T[], size: number): T[][] {
 }
 
 function normalize(item: DetailItem): ShowcaseBrand {
+  const displayName = item.mainBrandName?.trim() || item.subBrandName?.trim() || `브랜드 #${item.displayBrandNo}`;
   return {
-    brandNo: item.brandNo,
-    name: item.name?.trim() || `브랜드 #${item.brandNo}`,
+    brandNo: item.displayBrandNo,
+    name: displayName,
     extraInfo: item.extraInfo ?? '',
     imageUrl: item.displayAreaContentUrl ?? '',
   };
 }
 
-// GET /display/brands/search-by-nos — brandNo 묶음에 대한 진열 상세(extraInfo·이미지) 조회.
+// GET /display/brands/search-by-nos — 브랜드 번호 묶음으로 상세(extraInfo·이미지) 조회.
 // 한 호출당 BRAND_DETAIL_CHUNK_SIZE 개로 청크 분할하고 병렬 실행하되,
 // 결과는 입력 순서대로 머지한다(UI 정렬 안정성).
+// 가정: /display/brands/search의 brandNo == search-by-nos의 displayBrandNo.
 export async function fetchDisplayBrandDetails(
   brandNos: number[],
   clientId: string = SHOPBY_CLIENT_ID,
@@ -66,13 +77,17 @@ export async function fetchDisplayBrandDetails(
   const chunks = chunk(brandNos, BRAND_DETAIL_CHUNK_SIZE);
   const responses = await Promise.all(
     chunks.map((group) =>
-      shopApiGet<DetailResponse>('/display/brands/search-by-nos', { brandNos: group.join(',') }, clientId),
+      shopApiGet<DetailResponse>(
+        '/display/brands/search-by-nos',
+        { displayBrandNos: group.join(',') },
+        clientId,
+      ),
     ),
   );
 
   const byNo = new Map<number, ShowcaseBrand>();
   for (const response of responses) {
-    for (const item of response.items ?? []) byNo.set(item.brandNo, normalize(item));
+    for (const item of response.brands ?? []) byNo.set(item.displayBrandNo, normalize(item));
   }
 
   return brandNos.flatMap((no) => {

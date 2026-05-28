@@ -51,4 +51,33 @@ describe('DisplayWorkspace', () => {
     // 사용자유형 미선택 → "c_1_p_t_" 는 사용자 유형 문자가 비어 error.
     expect(screen.getByRole('button', { name: '어드민에 채우기' })).toHaveProperty('disabled', true);
   });
+
+  it('노출여부를 선택하면 display.radio.exposureYn 필드를 함께 보낸다', () => {
+    vi.mocked(sendMessage).mockResolvedValue({
+      filled: [{ key: 'displayId' }, { key: 'display.radio.exposureYn' }],
+      failed: [],
+    });
+    render(<DisplayWorkspace />);
+
+    fireEvent.click(screen.getByRole('button', { name: '병' }));
+    fireEvent.click(screen.getByRole('button', { name: '비노출' }));
+    fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
+
+    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [
+      { key: 'displayId', value: 'c_1_p_t_병' },
+      { key: 'display.radio.exposureYn', value: 'N' },
+    ]);
+  });
+
+  it('노출여부를 다시 누르면 선택 해제되고 필드가 빠진다', () => {
+    vi.mocked(sendMessage).mockResolvedValue({ filled: [{ key: 'displayId' }], failed: [] });
+    render(<DisplayWorkspace />);
+
+    fireEvent.click(screen.getByRole('button', { name: '병' }));
+    fireEvent.click(screen.getByRole('button', { name: '노출' }));
+    fireEvent.click(screen.getByRole('button', { name: '노출' }));
+    fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
+
+    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [{ key: 'displayId', value: 'c_1_p_t_병' }]);
+  });
 });

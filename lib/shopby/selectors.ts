@@ -33,3 +33,6 @@ export const BANNER_FIELD_MAP: FieldMap = Object.assign(
   {},
   ...Array.from({ length: BANNER_MAX_ACCOUNTS }, (_, i) => accountSelectors(i)),
 );
+
+// 브랜드 수정 페이지 "추가 설명"(extraInfo) textarea. 가이드 inject 대상.
+export const EXTRA_INFO_TEXTAREA_SELECTOR = 'textarea[name="extraInfo"]';

@@ -1,19 +1,21 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
-import { fillBannerRadios, isBannerRadioKey } from '../lib/shopby/banner-radios';
-import { fillExposure } from '../lib/shopby/exposure';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
-import { BANNER_FIELD_MAP, DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
+import { DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
+import { startBannerAnchor } from './content/banner-anchor';
 
 export default defineContentScript({
-  // 정찰(docs/recon.md): 편집 폼은 enterprise-remote iframe 내부,
-  // "노출 설정" 팝업은 popup-remote 별도 페이지에 렌더된다. 둘 다 매칭.
-  matches: ['https://enterprise-remote.shopby.co.kr/*', 'https://popup-remote.shopby.co.kr/*'],
+  // 정찰(docs/recon.md): 어드민 폼은 *.shopby.co.kr 도메인에서 렌더된다.
+  // 부모(service.shopby.co.kr)와 iframe(enterprise-remote.shopby.co.kr) 양쪽에 주입해야
+  // 어느 origin에 폼이 렌더돼도 닿는다. 실제 부착은 URL 가드(/headless-banners/edit) +
+  // 모드 가드(sectionName value의 "띠배너")가 좁혀준다.
+  matches: ['https://*.shopby.co.kr/*'],
   allFrames: true,
   main() {
     onMessage('fillDisplay', (message) => fillShopbyFields(DISPLAY_FIELD_MAP, message.data));
-    onMessage('fillBanner', (message) => fillBannerFields(message.data));
-    onMessage('fillExposure', (message) => fillExposureFields(message.data));
     onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
+
+    // 띠 배너 페이지의 accountName input 옆에 진열 선택 위젯을 부착.
+    startBannerAnchor();
   },
 });
 
@@ -25,33 +27,6 @@ function fillShopbyFields(fieldMap: FieldMap, fields: FillField[]): FillResult {
   const result = fillByMap(document, fieldMap, fields);
   highlightResult(fieldMap, result);
   return result;
-}
-
-function fillBannerFields(fields: FillField[]): FillResult {
-  if (!isShopbyAdminHost(location.hostname)) {
-    return adminHostError(fields);
-  }
-
-  // 사용 여부·노출 기간은 name 없는 라디오라 별도 경로로 처리한다.
-  const radioFields = fields.filter((field) => isBannerRadioKey(field.key));
-  const textFields = fields.filter((field) => !isBannerRadioKey(field.key));
-
-  const textResult = fillByMap(document, BANNER_FIELD_MAP, textFields);
-  highlightResult(BANNER_FIELD_MAP, textResult);
-  const radioResult = fillBannerRadios(document, radioFields);
-
-  return {
-    filled: [...textResult.filled, ...radioResult.filled],
-    failed: [...textResult.failed, ...radioResult.failed],
-  };
-}
-
-function fillExposureFields(fields: FillField[]): FillResult {
-  if (!isShopbyAdminHost(location.hostname)) {
-    return adminHostError(fields);
-  }
-
-  return fillExposure(document, fields);
 }
 
 function adminHostError(fields: FillField[]): FillResult {

@@ -1,5 +1,6 @@
 import { onMessage, type FillField, type FillResult } from '../lib/messaging';
 import { fillBannerRadios, isBannerRadioKey } from '../lib/shopby/banner-radios';
+import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
 import { fillExposure } from '../lib/shopby/exposure';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { BANNER_FIELD_MAP, DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
@@ -14,6 +15,7 @@ export default defineContentScript({
     onMessage('fillBanner', (message) => fillBannerFields(message.data));
     onMessage('fillExposure', (message) => fillExposureFields(message.data));
     onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
+    startExtraInfoGuide(document);
   },
 });
 

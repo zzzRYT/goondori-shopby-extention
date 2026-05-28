@@ -24,12 +24,13 @@
 
 ### 아키텍처 영향 (중요)
 
-- **content script는 `enterprise-remote.shopby.co.kr`에 `all_frames: true`로 주입**해야
-  iframe 내부 폼에 닿는다. 부모 페이지(`*.shopby.co.kr`)에 주입해도 cross-origin이라
-  iframe DOM에 접근 불가.
-- 사이드패널 → 채우기 메시지는 **iframe 프레임의 content script**로 전달돼야 한다
+- 정찰 당시 폼은 `enterprise-remote.shopby.co.kr` iframe에서 렌더됐지만, 라이브 환경에선
+  부모 셸인 `service.shopby.co.kr/appearance/custom/headless-banners/edit`에서 폼이 직접
+  렌더되는 경우가 확인됐다(2026-05-28). 어느 origin에 떨어져도 위젯이 닿도록 content
+  script `matches`는 `https://*.shopby.co.kr/*` + `allFrames: true`로 잡는다.
+- 사이드패널 → 채우기 메시지는 폼이 위치한 프레임의 content script로 전달돼야 한다
   (탭 전체 브로드캐스트 또는 frameId 지정).
-- `host_permissions` / content `matches`에 `https://enterprise-remote.shopby.co.kr/*` 필요.
+- `host_permissions`도 `https://*.shopby.co.kr/*`로 동일 범위.
 
 ## 캡처 현황
 
@@ -81,6 +82,17 @@
 - 띠 배너: `accountName`에 **연결할 진열 ID**를 넣음(자유입력 아님). 비율 무시.
 - 사용 여부(Y/N)·노출 기간(상시/기간)은 name 없는 라디오 → 콘텐츠 테이블(bannerName 앵커)
   + th 라벨로 탐색해 클릭. 날짜(데이트피커)는 자동화 제외(사람이 입력).
+
+#### 띠 / 메인 모드 판별 (Phase 1 정찰 결과)
+
+- URL은 메인·띠 동일(`/appearance/custom/headless-banners/edit?bannerNo=…`).
+  쿼리 `bannerNo`만 다르며 타입을 명시하는 쿼리는 없다.
+- 폼 상단의 **배너명 input**으로 판별:
+  - 셀렉터: `input[name="sectionName"]` (placeholder `"배너명을 입력해주세요."`, maxlength 20)
+  - 띠 모드: value에 `"띠배너"` 포함 (예: `스토어_띠배너`, `스토어_띠배너_테스트`)
+  - 메인 모드: value에 `"메인배너"` 포함 (예: `스토어_메인배너`, `스토어_메인배너_테스트`)
+- 인라인 진열 선택기는 **띠 모드일 때만** 부착한다(메인 배너의 `accountName`은 자유입력 구좌명이라 부착하면 안 됨).
+- SPA가 비동기로 폼을 렌더하므로 `sectionName` 등장과 value 채워짐을 MutationObserver로 함께 감시해야 한다.
 
 ### 노출 설정 팝업 (`popup-remote.shopby.co.kr`) — 또 다른 origin
 

@@ -1,0 +1,218 @@
+/* shadow DOM 내부 스타일. 어드민 CSS와 격리되므로 :host 기준 변수만 정의하고
+   나머지는 SearchableSelect가 쓰는 .combobox* 클래스를 그대로 재정의한다. */
+
+:host {
+  all: initial;
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  color: #101828;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.section-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+  font-size: 13px;
+}
+
+.section-anchor__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #2563eb;
+  border-radius: 6px;
+  padding: 5px 10px;
+  color: #1d4ed8;
+  background: #eff6ff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.section-anchor__trigger:hover {
+  background: #dbeafe;
+}
+
+.section-anchor__trigger[aria-expanded='true'] {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.section-anchor__trigger:disabled {
+  border-color: #d0d5dd;
+  background: #f2f4f7;
+  color: #98a2b3;
+  cursor: not-allowed;
+}
+
+.section-anchor__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.section-anchor__label[data-tone='ok'] {
+  background: #dcfae6;
+  color: #027a48;
+}
+
+.section-anchor__label[data-tone='warn'] {
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.section-anchor__label[data-tone='warn']::before {
+  content: '?';
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #b42318;
+  color: #fff;
+  text-align: center;
+  line-height: 14px;
+  font-size: 10px;
+}
+
+.section-anchor__popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 9999;
+  width: 320px;
+  padding: 10px;
+  border: 1px solid #d0d5dd;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 16px 32px -12px rgba(16, 24, 40, 0.35);
+}
+
+/* SearchableSelect 클래스 재정의 (사이드패널 style.css에서 복사). */
+.combobox {
+  position: relative;
+  display: grid;
+  gap: 7px;
+}
+
+.combobox__input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #d0d5dd;
+  border-radius: 6px;
+  padding: 7px 10px;
+  font-size: 13px;
+  color: #101828;
+  background: #ffffff;
+}
+
+.combobox[data-open='true'] .combobox__input {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px #b9d6ff;
+}
+
+.combobox__list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 220px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid #d0d5dd;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 12px 28px -12px rgba(16, 24, 40, 0.35);
+}
+
+.combobox__option {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: #344054;
+  font-size: 13px;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.combobox__option:hover,
+.combobox__option[data-active='true'] {
+  background: #f2f4f7;
+  color: #101828;
+}
+
+.combobox__option[aria-selected='true'] {
+  background: #e9f2ff;
+  color: #0b4aa2;
+  font-weight: 700;
+}
+
+.combobox__option-label {
+  word-break: break-all;
+}
+
+.combobox__option-hint {
+  flex: 0 0 auto;
+  color: #98a2b3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 11px;
+}
+
+.combobox__empty {
+  padding: 10px;
+  color: #667085;
+  font-size: 12px;
+  text-align: center;
+}
+
+.combobox[data-state='error'] {
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #fecdca;
+  border-radius: 8px;
+  background: #fffbfa;
+}
+
+.combobox__error {
+  margin: 0;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.combobox__retry {
+  justify-self: start;
+  min-height: 30px;
+  border: 1px solid #fda29b;
+  border-radius: 6px;
+  padding: 5px 12px;
+  color: #b42318;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.combobox__retry:hover {
+  background: #fef3f2;
+}
+
+.field-hint {
+  color: #667085;
+  font-size: 12px;
+}

@@ -9,9 +9,6 @@ export type FillResult = {
 
 interface Protocol {
   fillDisplay(fields: FillField[]): FillResult;
-  fillBanner(fields: FillField[]): FillResult;
-  // 노출 설정 팝업(popup-remote.shopby.co.kr)의 노출 방식 라디오 설정.
-  fillExposure(fields: FillField[]): FillResult;
   readCurrentDisplay(): Record<string, string>;
 }
 

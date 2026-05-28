@@ -5,7 +5,7 @@ import { FillReport } from './FillReport';
 type FillButtonProps = {
   disabled: boolean;
   fields: FillField[];
-  message?: 'fillDisplay' | 'fillBanner' | 'fillExposure';
+  message?: 'fillDisplay';
   label?: string;
 };
 

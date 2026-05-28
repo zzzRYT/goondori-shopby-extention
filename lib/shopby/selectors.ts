@@ -36,3 +36,10 @@ export const BANNER_FIELD_MAP: FieldMap = Object.assign(
 
 // 브랜드 수정 페이지 "추가 설명"(extraInfo) textarea. 가이드 inject 대상.
 export const EXTRA_INFO_TEXTAREA_SELECTOR = 'textarea[name="extraInfo"]';
+
+// 브랜드 관리 페이지 좌측 트리(TreeV2). 클래스명 suffix(예: __HFKaJ)는
+// CSS 모듈 빌드 해시라 변경 가능성이 있어 prefix 기반 substring 매칭을 쓴다.
+// 클릭 타깃은 item-label(드래그 가능, selected 상태 마커가 붙는 곳).
+export const BRAND_TREE_CONTAINER_SELECTOR = '[class*="TreeV2_tree__"]';
+export const BRAND_TREE_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
+export const BRAND_TREE_CONTENT_SELECTOR = '[class*="TreeV2_content__"]';

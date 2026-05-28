@@ -906,3 +906,127 @@ textarea:focus-visible {
   color: #667085;
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
+
+.brand-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #e4e7ec;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.brand-list__row-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-bottom: 1px solid #f2f4f7;
+}
+
+.brand-list__row-wrap:last-child {
+  border-bottom: 0;
+}
+
+.brand-list__row {
+  display: grid;
+  grid-template-columns: 56px 36px 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: #1d2939;
+  background: #fff;
+  border: 0;
+  border-left: 3px solid transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.brand-list__row:hover:not(:disabled) {
+  background: #f7fbff;
+  border-left-color: #2563eb;
+}
+
+.brand-list__row:focus-visible {
+  outline: none;
+  background: #f0f6ff;
+  border-left-color: #1d4ed8;
+}
+
+.brand-list__row[data-conflict='true'] {
+  background: #fffaf5;
+}
+
+.brand-list__row[data-conflict='true']:hover:not(:disabled) {
+  background: #fff4ec;
+  border-left-color: #b54708;
+}
+
+.brand-list__row[data-pending='true'] {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.brand-list__row[data-failed='true'] {
+  background: #fef3f2;
+  border-left-color: #b42318;
+}
+
+.brand-list__hint {
+  margin: 0 10px 6px;
+  font-size: 11px;
+  color: #b42318;
+}
+
+.brand-list__slot {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  color: #1d4ed8;
+  background: #eff4ff;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.brand-list__thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: #f2f4f7;
+  overflow: hidden;
+  display: inline-flex;
+}
+
+.brand-list__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-list__thumb-placeholder {
+  width: 100%;
+  height: 100%;
+}
+
+.brand-list__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-list__no {
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 11px;
+  color: #667085;
+}
+
+.brand-list__conflict {
+  font-size: 14px;
+  color: #b42318;
+}

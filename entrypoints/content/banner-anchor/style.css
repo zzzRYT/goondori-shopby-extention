@@ -216,3 +216,179 @@
   color: #667085;
   font-size: 12px;
 }
+
+/* FieldHint — input 옆/아래에 붙는 한 줄 가이드 칩.
+   호스트 span(.ext-shopby-hint)이 페이지 DOM 안에서 display:block + flex-basis:100%로
+   강제 줄바꿈되고, 시각 컨테이너는 shadow root 안의 .banner-guide가 담당한다. */
+
+.banner-guide {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.banner-guide[data-tone='info'] {
+  background: #eff8ff;
+  color: #175cd3;
+  border: 1px solid #b9e6fe;
+}
+
+.banner-guide[data-tone='warn'] {
+  background: #fffaeb;
+  color: #b54708;
+  border: 1px solid #fedf89;
+}
+
+.banner-guide__icon {
+  flex: 0 0 auto;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.banner-guide__text {
+  word-break: keep-all;
+}
+
+/* ValidationToast — "검증" 버튼 클릭 후 화면 상단 중앙에 잠시 뜨는 결과 토스트.
+   data-state="pass" / "fail" 두 상태를 가진다. */
+
+.validation-toast {
+  width: min(520px, calc(100vw - 40px));
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 24px 48px -16px rgba(16, 24, 40, 0.35);
+  font-size: 13px;
+  color: #344054;
+}
+
+.validation-toast[data-state='fail'] {
+  border: 1px solid #fecdca;
+}
+
+.validation-toast[data-state='pass'] {
+  border: 1px solid #abefc6;
+  background: #f6fef9;
+}
+
+.validation-toast__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.validation-toast[data-state='pass'] .validation-toast__header {
+  margin-bottom: 0;
+}
+
+.validation-toast__title {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.validation-toast[data-state='fail'] .validation-toast__title {
+  color: #b42318;
+}
+
+.validation-toast[data-state='pass'] .validation-toast__title {
+  color: #027a48;
+}
+
+.validation-toast__close {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #667085;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.validation-toast__close:hover {
+  background: #f2f4f7;
+  color: #101828;
+}
+
+.validation-toast__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.validation-toast__row {
+  display: block;
+}
+
+.validation-toast__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  background: #fffbfa;
+  border: none;
+  border-left: 3px solid #fda29b;
+  border-radius: 4px;
+  line-height: 1.5;
+  word-break: keep-all;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  transition: background 120ms ease, border-left-color 120ms ease;
+}
+
+.validation-toast__item:hover {
+  background: #fef0ef;
+  border-left-color: #f04438;
+}
+
+.validation-toast__item:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
+}
+
+.validation-toast__body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.validation-toast__field {
+  color: #b42318;
+  font-weight: 700;
+}
+
+.validation-toast__reason {
+  color: #344054;
+}
+
+.validation-toast__locate {
+  flex: 0 0 auto;
+  color: #b42318;
+  font-weight: 700;
+  opacity: 0.55;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.validation-toast__item:hover .validation-toast__locate {
+  opacity: 1;
+  transform: translateX(2px);
+}
+
+.validation-toast__footer {
+  margin: 8px 0 0;
+  color: #667085;
+  font-size: 11px;
+  text-align: right;
+}

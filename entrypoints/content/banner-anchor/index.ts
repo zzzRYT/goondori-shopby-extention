@@ -1,36 +1,64 @@
 import { AttachManager } from './AttachManager';
+import { HintManager } from './HintManager';
+import { ValidateButton } from './ValidateButton';
+import { MAIN_BANNER_HINTS, STRIP_BANNER_HINTS } from './FieldHints';
 import shadowStyles from './style.css?inline';
 
 const PATH_GUARD = '/headless-banners/edit';
 const SECTION_NAME_SELECTOR = 'input[name="sectionName"]';
 const STRIP_NAME_TOKEN = '띠배너';
+const MAIN_NAME_TOKEN = '메인배너';
 
-// 어드민 띠 배너 페이지(`/headless-banners/edit`)에서만 인라인 위젯을 띄운다.
-// 메인 배너와 띠 배너는 URL이 동일하므로(recon.md), 상단 `sectionName` input의 value에
-// "띠배너"가 포함됐을 때만 부착한다.
+type Mode = 'main' | 'strip' | null;
+
+// 어드민 헤드리스 배너 페이지(`/headless-banners/edit`)에서만 가이드를 띄운다.
+// 메인/띠는 URL이 같아 상단 `sectionName` input의 value로 판별한다.
+// - 띠배너 → 진열 선택기(SectionAnchor) + 띠배너 전용 필드 가이드
+// - 메인배너 → 메인배너 전용 필드 가이드 (진열 선택기는 부착 안 함)
 export function startBannerAnchor(rootDoc: Document = document): () => void {
   if (!rootDoc.location.pathname.includes(PATH_GUARD)) {
     return () => {};
   }
 
-  const manager = new AttachManager({ styleSheet: shadowStyles });
-  let attached = false;
+  const sectionAnchorManager = new AttachManager({ styleSheet: shadowStyles });
+  const stripHintManager = new HintManager({ specs: STRIP_BANNER_HINTS, styleSheet: shadowStyles });
+  const mainHintManager = new HintManager({ specs: MAIN_BANNER_HINTS, styleSheet: shadowStyles });
+  const stripValidateButton = new ValidateButton({ mode: 'strip', styleSheet: shadowStyles });
+  const mainValidateButton = new ValidateButton({ mode: 'main', styleSheet: shadowStyles });
 
-  function isStripMode(): boolean {
-    const sectionName = rootDoc.querySelector<HTMLInputElement>(SECTION_NAME_SELECTOR);
-    return sectionName?.value.includes(STRIP_NAME_TOKEN) ?? false;
+  let activeMode: Mode = null;
+
+  function detectMode(): Mode {
+    const value = rootDoc.querySelector<HTMLInputElement>(SECTION_NAME_SELECTOR)?.value ?? '';
+    if (value.includes(STRIP_NAME_TOKEN)) return 'strip';
+    if (value.includes(MAIN_NAME_TOKEN)) return 'main';
+    return null;
+  }
+
+  function applyMode(next: Mode) {
+    if (next === activeMode) return;
+
+    // 모드 전환 시 이전 매니저는 모두 정리 후 새 모드 매니저만 시작.
+    sectionAnchorManager.stop();
+    stripHintManager.stop();
+    mainHintManager.stop();
+    stripValidateButton.stop();
+    mainValidateButton.stop();
+
+    if (next === 'strip') {
+      sectionAnchorManager.start(rootDoc);
+      stripHintManager.start(rootDoc);
+      stripValidateButton.start(rootDoc);
+    } else if (next === 'main') {
+      mainHintManager.start(rootDoc);
+      mainValidateButton.start(rootDoc);
+    }
+
+    activeMode = next;
   }
 
   function sync() {
-    if (isStripMode()) {
-      if (!attached) {
-        manager.start(rootDoc);
-        attached = true;
-      }
-    } else if (attached) {
-      manager.stop();
-      attached = false;
-    }
+    applyMode(detectMode());
   }
 
   sync();
@@ -49,7 +77,11 @@ export function startBannerAnchor(rootDoc: Document = document): () => void {
   return function stop() {
     observer.disconnect();
     rootDoc.removeEventListener('input', valueHandler, true);
-    if (attached) manager.stop();
-    attached = false;
+    sectionAnchorManager.stop();
+    stripHintManager.stop();
+    mainHintManager.stop();
+    stripValidateButton.stop();
+    mainValidateButton.stop();
+    activeMode = null;
   };
 }

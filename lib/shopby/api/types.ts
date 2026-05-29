@@ -19,3 +19,13 @@ export type ShowcaseBrand = {
   extraInfo: string;
   imageUrl: string;
 };
+
+// 전시카테고리 트리 엔트리. /categories multiLevelCategories를 UI용으로 정규화.
+// managementCode는 상위(depth 1)에만 의미 있는 c_/ct_ 코드, 하위는 빈 문자열일 수 있다.
+export type DisplayCategoryEntry = {
+  categoryNo: number;
+  name: string;
+  managementCode: string;
+  depth: number;
+  children: DisplayCategoryEntry[];
+};

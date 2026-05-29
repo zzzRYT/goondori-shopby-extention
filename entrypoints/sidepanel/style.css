@@ -1004,3 +1004,18 @@ textarea:focus-visible {
   font-size: 14px;
   color: #b42318;
 }
+
+/* 전시카테고리 미리보기 — Figma node 25858-232537 */
+.category-preview { background: #fff; border: 1px solid #ebebeb; border-radius: 8px; overflow: hidden; }
+.category-preview__tabs { display: flex; align-items: center; border-bottom: 1px solid #ebebeb; padding: 0 12px; }
+.category-preview__tab {
+  flex: 1 0 0; height: 44px; border: 0; background: none; cursor: pointer;
+  font-weight: 600; font-size: 15px; color: #8a8a8a; border-bottom: 2px solid transparent;
+}
+.category-preview__tab[data-active='true'] { color: #3fb382; border-bottom-color: #3fb382; }
+.category-preview__chips { display: flex; gap: 6px; align-items: center; padding: 10px 0 10px 16px; overflow-x: auto; }
+.category-preview__chip {
+  height: 32px; padding: 7px 12px; border-radius: 99px; cursor: pointer;
+  border: 1px solid #dcdcdc; background: #fff; color: #8a8a8a; font-size: 14px; font-weight: 500; white-space: nowrap;
+}
+.category-preview__chip[data-active='true'] { background: #474747; color: #f7f7f7; border-color: #474747; font-weight: 600; }

@@ -2,6 +2,8 @@ import { onMessage, type FillField, type FillResult } from '../lib/messaging';
 import { startBannerAnchor } from './content/banner-anchor';
 import { openBrandEditor } from '../lib/shopby/brand-editor-open';
 import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
+import { openCategoryEditor } from '../lib/shopby/category-editor-open';
+import { startCategoryCodeGuide } from '../lib/shopby/category-code-guide';
 import {
   fillDisplayRadios,
   isDisplayRadioKey,
@@ -22,7 +24,11 @@ export default defineContentScript({
     onMessage('openBrandEditor', (message) =>
       openBrandEditor(document, message.data),
     );
+    onMessage('openCategoryEditor', (message) =>
+      openCategoryEditor(document, message.data),
+    );
     startExtraInfoGuide(document);
+    startCategoryCodeGuide(document);
     startBannerAnchor();
   },
 });

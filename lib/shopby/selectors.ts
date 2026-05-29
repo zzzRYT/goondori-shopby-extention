@@ -54,3 +54,14 @@ export const EXTRA_INFO_TEXTAREA_SELECTOR = 'textarea[name="extraInfo"]';
 export const BRAND_TREE_CONTAINER_SELECTOR = '[class*="TreeV2_tree__"]';
 export const BRAND_TREE_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
 export const BRAND_TREE_CONTENT_SELECTOR = '[class*="TreeV2_content__"]';
+
+// 전시카테고리 편집 페이지. name 속성이 없어 CSS 모듈 클래스 prefix(substring) 매칭.
+// suffix(__0-V7R 등)는 빌드 해시라 변동 가능.
+export const DISPLAY_CATEGORY_CODE_INPUT_SELECTOR =
+  '[class*="display-category-management_input-code__"]';
+export const DISPLAY_CATEGORY_NAME_INPUT_SELECTOR =
+  '[class*="display-category-management_input-name__"]';
+export const DISPLAY_CATEGORY_TREE_SELECTOR =
+  '[class*="display-category-management_category-tree__"]';
+export const DISPLAY_CATEGORY_NAME_WRAP_SELECTOR =
+  '[class*="display-category-management_category-name-wrap__"]';

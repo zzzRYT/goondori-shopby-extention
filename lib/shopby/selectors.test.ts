@@ -2,7 +2,11 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { fillByMap } from './fill';
-import { DISPLAY_FIELD_MAP } from './selectors';
+import {
+  DISPLAY_CATEGORY_CODE_INPUT_SELECTOR,
+  DISPLAY_CATEGORY_NAME_WRAP_SELECTOR,
+  DISPLAY_FIELD_MAP,
+} from './selectors';
 
 function loadFixture(name: string): Document {
   const html = readFileSync(resolve(process.cwd(), 'tests/fixtures', name), 'utf-8');
@@ -32,5 +36,19 @@ describe('DISPLAY_FIELD_MAP (admin-display.html 실제 폼 픽스처)', () => {
     for (const selector of Object.values(DISPLAY_FIELD_MAP)) {
       expect(doc.querySelector(selector), `셀렉터 미존재: ${selector}`).not.toBeNull();
     }
+  });
+});
+
+describe('전시카테고리 셀렉터', () => {
+  it('코드 입력란 prefix 매칭', () => {
+    const el = document.createElement('input');
+    el.className = 'display-category-management_input-code__0-V7R';
+    expect(el.matches(DISPLAY_CATEGORY_CODE_INPUT_SELECTOR)).toBe(true);
+  });
+
+  it('트리 이름 wrap prefix 매칭', () => {
+    const el = document.createElement('div');
+    el.className = 'display-category-management_category-name-wrap__18Ezs';
+    expect(el.matches(DISPLAY_CATEGORY_NAME_WRAP_SELECTOR)).toBe(true);
   });
 });

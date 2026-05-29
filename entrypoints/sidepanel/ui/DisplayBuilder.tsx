@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   buildDisplayId,
   parseDisplayId,
+  type Display,
   type DisplaySpec,
   type Env,
   type Method,
@@ -20,6 +21,7 @@ type DisplayBuilderProps = {
 
 export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
   const [env, setEnv] = useState<Env>('c');
+  const [onHome, setOnHome] = useState(true);
   const [order, setOrder] = useState(1);
   const [method, setMethod] = useState<Method>('p');
   const [type, setType] = useState<DisplayType>('t');
@@ -28,11 +30,17 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
   const [label, setLabel] = useState('베스트');
   const [sourceId, setSourceId] = useState('');
 
+  // 전시 토큰: 홈 전시면 순서를 가진 d{n}, 비노출이면 nd.
+  const display = useMemo<Display>(
+    () => (onHome ? { onHome: true, order } : { onHome: false }),
+    [onHome, order],
+  );
+
   const spec = useMemo<DisplaySpec>(() => {
-    if (type === 'b') return { env, order, method, type, brandNo };
-    if (type === 'n') return { env, order, method, type, label };
-    return { env, order, method, type, userTypes };
-  }, [brandNo, env, label, method, order, type, userTypes]);
+    if (type === 'b') return { env, display, method, type, brandNo };
+    if (type === 'n') return { env, display, method, type, label };
+    return { env, display, method, type, userTypes };
+  }, [brandNo, display, env, label, method, type, userTypes]);
 
   const preview = buildDisplayId(spec);
   const validation = parseDisplayId(preview);
@@ -51,7 +59,8 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
     if (!parsed.ok) return;
 
     setEnv(parsed.value.env);
-    setOrder(parsed.value.order);
+    setOnHome(parsed.value.display.onHome);
+    if (parsed.value.display.onHome) setOrder(parsed.value.display.order);
     setMethod(parsed.value.method);
     setType(parsed.value.type);
 
@@ -101,15 +110,45 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           </div>
         </fieldset>
 
-        <label className="field">
-          <span>순서</span>
-          <input
-            min={1}
-            onChange={(event) => setOrder(Number(event.target.value))}
-            type="number"
-            value={order}
-          />
-        </label>
+        <fieldset className="field-group">
+          <legend>홈 전시</legend>
+          <div className="segmented">
+            <button
+              aria-pressed={onHome}
+              className="segmented__button"
+              data-active={onHome}
+              onClick={() => setOnHome(true)}
+              type="button"
+            >
+              전시 d
+            </button>
+            <button
+              aria-pressed={!onHome}
+              className="segmented__button"
+              data-active={!onHome}
+              onClick={() => setOnHome(false)}
+              type="button"
+            >
+              비노출 nd
+            </button>
+          </div>
+        </fieldset>
+
+        {onHome ? (
+          <label className="field">
+            <span>순서</span>
+            <input
+              min={1}
+              onChange={(event) => setOrder(Number(event.target.value))}
+              type="number"
+              value={order}
+            />
+          </label>
+        ) : (
+          <p className="field field--wide field-hint">
+            홈에 노출되지 않고 진열 ID 직접 조회로만 진입합니다 (브랜드 페이지 등).
+          </p>
+        )}
 
         <fieldset className="field-group">
           <legend>표시 방법</legend>

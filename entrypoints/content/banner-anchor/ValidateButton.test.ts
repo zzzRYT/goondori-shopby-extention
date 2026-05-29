@@ -4,7 +4,7 @@ import { resetSectionsCache } from './sectionsCache';
 import { ValidateButton } from './ValidateButton';
 
 const SECTIONS: SectionEntry[] = [
-  { sectionNo: 1, sectionId: 'c_1_p_t_병부장', sectionName: '병부장' },
+  { sectionNo: 1, sectionId: 'c_d1_p_t_병부장', sectionName: '병부장' },
 ];
 
 function buildBottomBar(saveText = '저장') {
@@ -344,7 +344,7 @@ describe('ValidateButton — 검증 동작 (strip mode)', () => {
   it('유효한 진열 ID는 통과', async () => {
     const accountInput = document.createElement('input');
     accountInput.name = 'accounts.0.accountName';
-    accountInput.value = 'c_1_p_t_병부장';
+    accountInput.value = 'c_d1_p_t_병부장';
     document.body.append(accountInput);
     const { wrap } = buildBottomBar();
     document.body.append(wrap);

@@ -3,8 +3,8 @@ import type { SectionEntry } from '../../../lib/shopby/api/types';
 import { getCachedSections, resetSectionsCache } from './sectionsCache';
 
 const SAMPLE: SectionEntry[] = [
-  { sectionNo: 1, sectionId: 'ct_3_s_b_43215615', sectionName: 'OO 매대' },
-  { sectionNo: 2, sectionId: 'ct_3_s_b_43215621', sectionName: 'XX 매대' },
+  { sectionNo: 1, sectionId: 'ct_d3_s_b_43215615', sectionName: 'OO 매대' },
+  { sectionNo: 2, sectionId: 'ct_d3_s_b_43215621', sectionName: 'XX 매대' },
 ];
 
 afterEach(() => {

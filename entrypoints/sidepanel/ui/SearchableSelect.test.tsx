@@ -66,9 +66,9 @@ describe('SearchableSelect', () => {
   });
 
   it('목록에 없는 value는 원본 값을 그대로 보여준다', () => {
-    setup({ value: 'c_9_p_t_복원됨' });
+    setup({ value: 'c_d9_p_t_복원됨' });
 
-    expect(screen.getByRole('combobox', { name: '진열' })).toHaveProperty('value', 'c_9_p_t_복원됨');
+    expect(screen.getByRole('combobox', { name: '진열' })).toHaveProperty('value', 'c_d9_p_t_복원됨');
   });
 
   it('로딩 중에는 콤보박스 대신 안내를 보여준다', () => {

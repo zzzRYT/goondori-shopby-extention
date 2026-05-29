@@ -28,7 +28,7 @@ describe('DisplayWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
     expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [
-      { key: 'displayId', value: 'c_1_p_t_병' },
+      { key: 'displayId', value: 'c_d1_p_t_병' },
       { key: 'title', value: '군인을 위한 꿀템' },
       { key: 'color', value: '군인#008000' },
     ]);
@@ -42,13 +42,13 @@ describe('DisplayWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '병' }));
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
-    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [{ key: 'displayId', value: 'c_1_p_t_병' }]);
+    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [{ key: 'displayId', value: 'c_d1_p_t_병' }]);
   });
 
   it('진열 ID에 오류가 있으면 채우기 버튼이 비활성화된다', () => {
     render(<DisplayWorkspace />);
 
-    // 사용자유형 미선택 → "c_1_p_t_" 는 사용자 유형 문자가 비어 error.
+    // 사용자유형 미선택 → "c_d1_p_t_" 는 사용자 유형 문자가 비어 error.
     expect(screen.getByRole('button', { name: '어드민에 채우기' })).toHaveProperty('disabled', true);
   });
 
@@ -64,7 +64,7 @@ describe('DisplayWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
     expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [
-      { key: 'displayId', value: 'c_1_p_t_병' },
+      { key: 'displayId', value: 'c_d1_p_t_병' },
       { key: 'display.radio.exposureYn', value: 'N' },
     ]);
   });
@@ -78,6 +78,6 @@ describe('DisplayWorkspace', () => {
     fireEvent.click(screen.getByRole('button', { name: '노출' }));
     fireEvent.click(screen.getByRole('button', { name: '어드민에 채우기' }));
 
-    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [{ key: 'displayId', value: 'c_1_p_t_병' }]);
+    expect(sendMessage).toHaveBeenCalledWith('fillDisplay', [{ key: 'displayId', value: 'c_d1_p_t_병' }]);
   });
 });

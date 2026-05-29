@@ -1032,3 +1032,13 @@ textarea:focus-visible {
 .category-list__children { list-style: none; margin: 0; padding: 0 0 6px 28px; }
 .category-list__child { border: 0; background: none; cursor: pointer; padding: 6px 4px; color: #474747; font-size: 13px; }
 .category-list__child::before { content: '· '; color: #8a8a8a; }
+
+/* 전시카테고리 탭 컨테이너 */
+.category-showcase { display: flex; flex-direction: column; gap: 12px; }
+.category-showcase__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.category-showcase__reload { border: 1px solid #dcdcdc; background: #fff; border-radius: 6px; padding: 6px 10px; cursor: pointer; font-size: 13px; color: #474747; }
+.category-showcase__reload:disabled { opacity: 0.5; cursor: default; }
+.category-showcase__skeleton { display: flex; flex-direction: column; gap: 8px; }
+.category-showcase__skeleton-row { height: 44px; border-radius: 8px; background: linear-gradient(90deg, #f2f2f2, #e9e9e9, #f2f2f2); }
+.category-showcase__error { color: #b42318; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
+.category-showcase__empty { color: #667085; font-size: 13px; line-height: 1.5; }

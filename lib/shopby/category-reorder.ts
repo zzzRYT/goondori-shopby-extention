@@ -65,3 +65,23 @@ export function planReorder(env: Env, items: ReorderItem[]): CategoryReorderStep
 function step(env: Env, item: ReorderItem, order: number): CategoryReorderStep {
   return { categoryNo: item.categoryNo, name: item.name, newCode: buildCategoryCode(env, order) };
 }
+
+// 순번을 가진 카테고리(상위). TopCategory와 구조 호환.
+export type OrderedCategory = { categoryNo: number; name: string; order: number };
+
+// 원본(순번 오름차순)과 사용자가 재배열한 draft를 받아 저장 시퀀스를 만든다.
+// 핵심: 순번 "값"의 집합은 그대로 두고 위치만 재배치한다 — draft i번째 카테고리는
+// 원본 i번째의 순번 값을 목표로 갖는다(비연속 순번도 보존).
+export function planReorderFromDraft(
+  env: Env,
+  original: OrderedCategory[],
+  draft: OrderedCategory[],
+): CategoryReorderStep[] {
+  const items: ReorderItem[] = draft.map((cat, i) => ({
+    categoryNo: cat.categoryNo,
+    name: cat.name,
+    currentOrder: cat.order,
+    targetOrder: original[i].order,
+  }));
+  return planReorder(env, items);
+}

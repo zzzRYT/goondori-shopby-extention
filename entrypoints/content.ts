@@ -3,6 +3,7 @@ import { startBannerAnchor } from './content/banner-anchor';
 import { openBrandEditor } from '../lib/shopby/brand-editor-open';
 import { startExtraInfoGuide } from '../lib/shopby/brand-extra-info-guide';
 import { openCategoryEditor } from '../lib/shopby/category-editor-open';
+import { applyCategoryReorder } from '../lib/shopby/category-reorder-apply';
 import { startCategoryCodeGuide } from '../lib/shopby/category-code-guide';
 import {
   fillDisplayRadios,
@@ -26,6 +27,9 @@ export default defineContentScript({
     );
     onMessage('openCategoryEditor', (message) =>
       openCategoryEditor(document, message.data),
+    );
+    onMessage('applyCategoryReorder', (message) =>
+      applyCategoryReorder(document, message.data),
     );
     startExtraInfoGuide(document);
     startCategoryCodeGuide(document);

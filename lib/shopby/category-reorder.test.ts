@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { planReorder, type ReorderItem } from './category-reorder';
+import {
+  planReorder,
+  planReorderFromDraft,
+  type OrderedCategory,
+  type ReorderItem,
+} from './category-reorder';
 
 // 가독성을 위한 헬퍼: 각 스텝을 "name:newCode" 로 직렬화.
 function trace(items: ReorderItem[], env: 'c' | 'ct' = 'c'): string[] {
@@ -68,6 +73,34 @@ describe('planReorder', () => {
       { categoryNo: 2, name: 'B', currentOrder: 2, targetOrder: 1 },
     ];
     expect(trace(items, 'ct')).toEqual(['A:ct_3', 'B:ct_1', 'A:ct_2']);
+  });
+});
+
+describe('planReorderFromDraft', () => {
+  const original: OrderedCategory[] = [
+    { categoryNo: 10, name: 'A', order: 1 },
+    { categoryNo: 20, name: 'B', order: 2 },
+    { categoryNo: 30, name: 'C', order: 3 },
+  ];
+
+  it('순서 변경이 없으면 빈 시퀀스', () => {
+    expect(planReorderFromDraft('c', original, original)).toEqual([]);
+  });
+
+  it('맨 끝을 맨 앞으로 옮기면 해당 회전을 최소 시퀀스로 만든다', () => {
+    // draft: C, A, B  → C는 order1, A는 order2, B는 order3 목표
+    const draft: OrderedCategory[] = [original[2], original[0], original[1]];
+    const steps = planReorderFromDraft('c', original, draft);
+    // 3-회전: head(C) 파킹 c_4 → 역순 이동 → C 최종 c_1
+    expect(steps.map((s) => `${s.name}:${s.newCode}`)).toEqual([
+      'C:c_4', 'B:c_3', 'A:c_2', 'C:c_1',
+    ]);
+  });
+
+  it('인접 두 개를 맞바꾸면 임시 경유 3스텝', () => {
+    const draft: OrderedCategory[] = [original[1], original[0], original[2]];
+    const steps = planReorderFromDraft('c', original, draft);
+    expect(steps.map((s) => `${s.name}:${s.newCode}`)).toEqual(['B:c_4', 'A:c_2', 'B:c_1']);
   });
 });
 

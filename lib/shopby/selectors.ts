@@ -45,8 +45,9 @@ export const BANNER_FIELD_MAP: FieldMap = Object.assign(
   ...Array.from({ length: BANNER_MAX_ACCOUNTS }, (_, i) => accountSelectors(i)),
 );
 
-// 브랜드 수정 페이지 "추가 설명"(extraInfo) textarea. 가이드 inject 대상.
-export const EXTRA_INFO_TEXTAREA_SELECTOR = 'textarea[name="extraInfo"]';
+// 브랜드 수정 페이지 "추가 설명"(extraInfo) input. 가이드 inject 대상.
+// 실제 DOM은 textarea가 아니라 input이고 name이 "brandInfo.extraInfo"다(2026-06 확인).
+export const EXTRA_INFO_INPUT_SELECTOR = 'input[name="brandInfo.extraInfo"]';
 
 // 브랜드 관리 페이지 좌측 트리(TreeV2). 클래스명 suffix(예: __HFKaJ)는
 // CSS 모듈 빌드 해시라 변경 가능성이 있어 prefix 기반 substring 매칭을 쓴다.

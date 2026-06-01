@@ -1,13 +1,23 @@
 import type { OpenCategoryEditorRequest, OpenCategoryEditorResult } from '../messaging';
 import {
   DISPLAY_CATEGORY_CODE_INPUT_SELECTOR,
+  DISPLAY_CATEGORY_ITEM_LABEL_SELECTOR,
   DISPLAY_CATEGORY_NAME_INPUT_SELECTOR,
   DISPLAY_CATEGORY_NAME_WRAP_SELECTOR,
   DISPLAY_CATEGORY_TREE_SELECTOR,
+  DISPLAY_CATEGORY_TREE_TOOL_BUTTON_SELECTOR,
 } from './selectors';
 
+// name-wrap의 표시 이름. 실제 캡처에선 숨김 아이콘 SVG가 섞이므로 첫 <span> 텍스트를
+// 우선 쓰고, span이 없으면 textContent로 폴백한다.
+function wrapName(wrap: HTMLElement): string {
+  const span = wrap.querySelector('span');
+  return (span?.textContent ?? wrap.textContent ?? '').trim();
+}
+
 // 트리 row에서 카테고리 이름이 일치하는 name-wrap 엘리먼트를 반환한다.
-// 이름은 분기별 중복 가능 → 첫 매치 사용(하위는 부모 펼침 상태에서만 보임, best-effort).
+// 이름은 분기별 중복 가능 → 첫 매치 사용. 관리코드 유일성 때문에 상위 식별엔 충분하고,
+// 하위는 "전체 열기"로 펼친 뒤 탐색한다.
 export function findCategoryRow(
   doc: Document | Element,
   request: OpenCategoryEditorRequest,
@@ -17,9 +27,21 @@ export function findCategoryRow(
 
   const wraps = doc.querySelectorAll<HTMLElement>(DISPLAY_CATEGORY_NAME_WRAP_SELECTOR);
   for (const wrap of wraps) {
-    if ((wrap.textContent?.trim() ?? '') === target) return wrap;
+    if (wrapName(wrap) === target) return wrap;
   }
   return null;
+}
+
+// 트리 상단 "전체 열기" 버튼을 찾아 클릭한다(중첩 하위까지 모두 보이게).
+// 버튼이 없으면(평면/이미 펼침) 조용히 패스 — 실패로 중단하지 않는다.
+function clickExpandAll(doc: Document): void {
+  const buttons = doc.querySelectorAll<HTMLElement>(DISPLAY_CATEGORY_TREE_TOOL_BUTTON_SELECTOR);
+  for (const button of buttons) {
+    if ((button.textContent ?? '').includes('전체 열기')) {
+      button.click();
+      return;
+    }
+  }
 }
 
 type OpenOptions = { maxScrollSteps?: number; scrollStepPx?: number; waitMs?: number; hostname?: string };
@@ -72,13 +94,19 @@ export async function openCategoryEditor(
   }
 
   const opts = { ...DEFAULTS, ...options };
+  // 중첩 하위까지 보이도록 먼저 전체 펼침(있으면). 펼침 반영 시간 확보.
+  clickExpandAll(doc);
+  await sleep(opts.waitMs);
+
   const row = await findWithScroll(doc, request, opts);
   if (!row) {
     return { status: 'not-found', message: '관리자 트리에서 해당 카테고리를 찾지 못했어요' };
   }
 
-  row.scrollIntoView?.({ block: 'center' });
-  row.click();
+  // 클릭 타깃은 name-wrap이 아니라 TreeV2 item-label(선택 핸들러가 붙는 곳).
+  const label = row.closest<HTMLElement>(DISPLAY_CATEGORY_ITEM_LABEL_SELECTOR) ?? row;
+  label.scrollIntoView?.({ block: 'center' });
+  label.click();
   await focusFieldSoon(doc, request.depth, opts);
   return { status: 'opened' };
 }

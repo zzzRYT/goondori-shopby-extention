@@ -65,3 +65,10 @@ export const DISPLAY_CATEGORY_TREE_SELECTOR =
   '[class*="display-category-management_category-tree__"]';
 export const DISPLAY_CATEGORY_NAME_WRAP_SELECTOR =
   '[class*="display-category-management_category-name-wrap__"]';
+// 전시카테고리 트리도 브랜드와 동일한 TreeV2 컴포넌트(중첩 계층)다. 클릭 타깃은 item-label.
+export const DISPLAY_CATEGORY_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
+// 트리 상단 "전체 열기"/"전체 닫기" 버튼(같은 클래스) — 텍스트로 구분해 "전체 열기"만 클릭.
+export const DISPLAY_CATEGORY_TREE_TOOL_BUTTON_SELECTOR =
+  '[class*="display-category-management_right-btn__"]';
+// 편집 폼 하단 저장 버튼. name 속성이 없어 하단바 + submit 조합으로 잡는다.
+export const DISPLAY_CATEGORY_SAVE_BUTTON_SELECTOR = '.bottom-bar button[type="submit"]';

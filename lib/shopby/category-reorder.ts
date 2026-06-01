@@ -1,3 +1,4 @@
+import type { CategoryReorderStep } from '../messaging';
 import type { Env } from '../display-id/types';
 import { buildCategoryCode } from './category-code';
 
@@ -10,12 +11,7 @@ export type ReorderItem = {
   targetOrder: number;
 };
 
-// 어드민 폼에서 한 번 수행할 저장 단위: 이 카테고리의 코드를 newCode로 바꿔 저장.
-export type CategoryReorderStep = {
-  categoryNo: number;
-  name: string;
-  newCode: string;
-};
+export type { CategoryReorderStep };
 
 // 관리코드 유일성("어느 순간에도 코드 중복 불가") 제약 하에서, 현재 순번 배치를
 // 목표 순번 배치로 바꾸는 최소 저장 시퀀스를 만든다.

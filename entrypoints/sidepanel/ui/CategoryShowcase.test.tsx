@@ -42,10 +42,10 @@ describe('CategoryShowcase', () => {
     expect(screen.queryByText('베스트')).toBeNull();
   });
 
-  it('로딩 중에는 스켈레톤을 보여준다', () => {
+  it('로딩 중에는 로딩 인디케이터를 보여준다', () => {
     stubFetch(() => new Promise(() => {})); // never resolves
     render(<CategoryShowcase />);
-    expect(screen.getByTestId('category-showcase-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('category-showcase-loading')).toBeTruthy();
   });
 
   it('에러 시 alert를 보여준다', async () => {

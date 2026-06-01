@@ -5,6 +5,7 @@ import { useRemoteList } from '../hooks/useRemoteList';
 import { BrandShowcaseCarousel } from './BrandShowcaseCarousel';
 import { BrandShowcaseList } from './BrandShowcaseList';
 import { EnvToggle } from './EnvToggle';
+import { Loading } from './Loading';
 
 const ENV_LABEL: Record<BrandEnv, string> = { prod: '운영(prod)', dev: '개발(dev)' };
 
@@ -29,13 +30,7 @@ export function BrandShowcase() {
         </button>
       </header>
 
-      {status === 'loading' && (
-        <div className="brand-showcase__skeleton" data-testid="brand-showcase-skeleton" aria-busy="true">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="brand-showcase__skeleton-card" />
-          ))}
-        </div>
-      )}
+      {status === 'loading' && <Loading testId="brand-showcase-loading" />}
 
       {status === 'error' && (
         <div className="brand-showcase__error" role="alert">

@@ -8,6 +8,7 @@ import { useRemoteList } from '../hooks/useRemoteList';
 import { CategoryGuide } from './CategoryGuide';
 import { CategoryList } from './CategoryList';
 import { CategoryPreview } from './CategoryPreview';
+import { Loading } from './Loading';
 
 const ENV_LABEL: Record<Env, string> = { c: '운영(c)', ct: '개발(ct)' };
 
@@ -61,13 +62,7 @@ export function CategoryShowcase() {
 
       <CategoryGuide />
 
-      {status === 'loading' && (
-        <div className="category-showcase__skeleton" data-testid="category-showcase-skeleton" aria-busy="true">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="category-showcase__skeleton-row" />
-          ))}
-        </div>
-      )}
+      {status === 'loading' && <Loading testId="category-showcase-loading" />}
 
       {status === 'error' && (
         <div className="category-showcase__error" role="alert">

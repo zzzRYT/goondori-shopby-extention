@@ -8,6 +8,6 @@ describe('CategoryGuide', () => {
     expect(screen.getByText('전시 순서 변경 방법')).toBeTruthy();
     expect(screen.getByText(/중복이 허용되지 않으므로/)).toBeTruthy();
     expect(screen.getByText(/“중복 확인”과 “저장”이 필수/)).toBeTruthy();
-    expect(screen.getByText(/c_1 → c_3/)).toBeTruthy();
+    expect(screen.getByText(/c_1 → ‘’\(빈 값\)/)).toBeTruthy();
   });
 });

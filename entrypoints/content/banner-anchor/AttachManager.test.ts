@@ -4,7 +4,7 @@ import { AttachManager } from './AttachManager';
 import { resetSectionsCache } from './sectionsCache';
 
 const SAMPLE: SectionEntry[] = [
-  { sectionNo: 1, sectionId: 'ct_3_s_b_43215615', sectionName: 'OO 매대' },
+  { sectionNo: 1, sectionId: 'ct_d3_s_b_43215615', sectionName: 'OO 매대' },
 ];
 
 const ACCOUNT_SELECTOR = 'input[name^="accounts."][name$=".accountName"]';

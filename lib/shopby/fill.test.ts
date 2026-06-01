@@ -8,9 +8,9 @@ describe('setFieldValue', () => {
     input.addEventListener('input', () => events.push('input'));
     input.addEventListener('change', () => events.push('change'));
 
-    setFieldValue(input, 'c_1_p_t_병');
+    setFieldValue(input, 'c_d1_p_t_병');
 
-    expect(input.value).toBe('c_1_p_t_병');
+    expect(input.value).toBe('c_d1_p_t_병');
     expect(events).toEqual(['input', 'change']);
   });
 });
@@ -23,12 +23,12 @@ describe('fillByMap', () => {
       document,
       { displayId: 'input[name="displayId"]', title: 'input[name="title"]' },
       [
-        { key: 'displayId', value: 'c_1_p_t_병' },
+        { key: 'displayId', value: 'c_d1_p_t_병' },
         { key: 'title', value: '군인을 위한 꿀템' },
       ],
     );
 
-    expect((document.querySelector('input[name="displayId"]') as HTMLInputElement).value).toBe('c_1_p_t_병');
+    expect((document.querySelector('input[name="displayId"]') as HTMLInputElement).value).toBe('c_d1_p_t_병');
     expect(result).toEqual({
       filled: [{ key: 'displayId' }],
       failed: [{ key: 'title', reason: 'selector not found: input[name="title"]' }],

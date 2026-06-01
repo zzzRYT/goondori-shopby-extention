@@ -5,9 +5,9 @@ import { SectionAnchor } from './SectionAnchor';
 import { resetSectionsCache } from './sectionsCache';
 
 const SAMPLE: SectionEntry[] = [
-  { sectionNo: 1, sectionId: 'ct_3_s_b_43215615', sectionName: 'OO 매대' },
-  { sectionNo: 2, sectionId: 'ct_3_s_b_43215621', sectionName: 'XX 매대' },
-  { sectionNo: 3, sectionId: 'ct_3_s_b_43215684', sectionName: '병부장 매대' },
+  { sectionNo: 1, sectionId: 'ct_d3_s_b_43215615', sectionName: 'OO 매대' },
+  { sectionNo: 2, sectionId: 'ct_d3_s_b_43215621', sectionName: 'XX 매대' },
+  { sectionNo: 3, sectionId: 'ct_d3_s_b_43215684', sectionName: '병부장 매대' },
 ];
 
 function mountInput(initialValue = ''): HTMLInputElement {
@@ -61,14 +61,14 @@ describe('SectionAnchor', () => {
     fireEvent.change(combo, { target: { value: '병부장' } });
     fireEvent.click(screen.getByRole('option', { name: /병부장 매대/ }));
 
-    expect(input.value).toBe('ct_3_s_b_43215684');
+    expect(input.value).toBe('ct_d3_s_b_43215684');
     expect(inputListener).toHaveBeenCalled();
     expect(changeListener).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole('combobox')).toBeNull());
   });
 
   it('input value와 일치하는 진열이 있으면 진열명을 라벨로 보여준다', async () => {
-    const input = mountInput('ct_3_s_b_43215615');
+    const input = mountInput('ct_d3_s_b_43215615');
     render(<SectionAnchor input={input} loadSections={() => Promise.resolve(SAMPLE)} />);
 
     expect(await screen.findByText('OO 매대')).toBeTruthy();
@@ -96,7 +96,7 @@ describe('SectionAnchor', () => {
     render(<SectionAnchor input={input} loadSections={() => Promise.resolve(SAMPLE)} />);
     await screen.findByRole('button', { name: /진열 선택/ });
 
-    input.value = 'ct_3_s_b_43215621';
+    input.value = 'ct_d3_s_b_43215621';
     input.dispatchEvent(new Event('input', { bubbles: true }));
 
     expect(await screen.findByText('XX 매대')).toBeTruthy();

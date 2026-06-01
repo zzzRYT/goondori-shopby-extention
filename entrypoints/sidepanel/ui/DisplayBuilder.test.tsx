@@ -13,18 +13,36 @@ describe('DisplayBuilder', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '병' }));
 
-    expect(screen.getByText('c_1_p_t_병')).toBeTruthy();
+    expect(screen.getByText('c_d1_p_t_병')).toBeTruthy();
   });
 
   it('기존 진열 ID를 붙여넣으면 폼을 복원한다', () => {
     render(<DisplayBuilder onChange={() => {}} />);
 
-    fireEvent.change(screen.getByLabelText('기존 진열 ID'), { target: { value: 'c_2_p_t_병부장' } });
+    fireEvent.change(screen.getByLabelText('기존 진열 ID'), { target: { value: 'c_d2_p_t_병부장' } });
 
-    expect(screen.getByText('c_2_p_t_병부장')).toBeTruthy();
+    expect(screen.getByText('c_d2_p_t_병부장')).toBeTruthy();
     expect(screen.getByRole('button', { name: '병' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: '부' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: '장' }).getAttribute('aria-pressed')).toBe('true');
+  });
+
+  it('홈 비노출(nd) 토글을 진열 ID 미리보기에 반영한다', () => {
+    render(<DisplayBuilder onChange={() => {}} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '병' }));
+    fireEvent.click(screen.getByRole('button', { name: '비노출 nd' }));
+
+    expect(screen.getByText('c_nd_p_t_병')).toBeTruthy();
+  });
+
+  it('nd 진열 ID를 붙여넣으면 홈 비노출 상태로 복원한다', () => {
+    render(<DisplayBuilder onChange={() => {}} />);
+
+    fireEvent.change(screen.getByLabelText('기존 진열 ID'), { target: { value: 'c_nd_s_b_43215615' } });
+
+    expect(screen.getByText('c_nd_s_b_43215615')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '비노출 nd' }).getAttribute('aria-pressed')).toBe('true');
   });
 
   it('조립 결과(진열 ID·오류 여부)를 onChange로 보고한다', () => {
@@ -33,7 +51,7 @@ describe('DisplayBuilder', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '병' }));
 
-    expect(onChange).toHaveBeenLastCalledWith({ displayId: 'c_1_p_t_병', hasError: false });
+    expect(onChange).toHaveBeenLastCalledWith({ displayId: 'c_d1_p_t_병', hasError: false });
   });
 
   it('브랜드 타입에서 브랜드를 선택하면 brandNo로 진열 ID를 조립한다', async () => {
@@ -44,6 +62,6 @@ describe('DisplayBuilder', () => {
     fireEvent.focus(combo);
     fireEvent.click(screen.getByRole('option', { name: /나이키/ }));
 
-    expect(screen.getByText('c_1_p_b_43186744')).toBeTruthy();
+    expect(screen.getByText('c_d1_p_b_43186744')).toBeTruthy();
   });
 });

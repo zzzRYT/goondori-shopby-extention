@@ -1,12 +1,21 @@
-import { USER_TYPE_CHARS, type DisplaySpec, type Issue, type Result, type UserTypeChar } from './types';
+import {
+  USER_TYPE_CHARS,
+  type Display,
+  type DisplaySpec,
+  type Issue,
+  type Result,
+  type UserTypeChar,
+} from './types';
 
 const ENVS = ['c', 'ct'];
 const METHODS = ['p', 's'];
 const TYPES = ['t', 'b', 'n'];
 
+const DISPLAY_TOKEN = /^d(\d+)$/;
+
 export function parseDisplayId(id: string): Result<DisplaySpec> {
   const issues: Issue[] = [];
-  const [env, orderStr, method, type, ...rest] = id.split('_');
+  const [env, tokenStr, method, type, ...rest] = id.split('_');
   const detail = rest.join('_');
 
   if (!ENVS.includes(env)) {
@@ -17,13 +26,22 @@ export function parseDisplayId(id: string): Result<DisplaySpec> {
     });
   }
 
-  const order = Number(orderStr);
-  if (!Number.isInteger(order) || order < 1) {
-    issues.push({
-      field: 'order',
-      severity: 'error',
-      message: `진열 순서는 1 이상 정수여야 합니다 (받음: ${orderStr ?? '없음'})`,
-    });
+  // 전시 토큰: `d{n}`(홈 전시 ON, 순서 n) 또는 `nd`(홈 비노출).
+  let display: Display = { onHome: false };
+  if (tokenStr === 'nd') {
+    display = { onHome: false };
+  } else {
+    const matched = DISPLAY_TOKEN.exec(tokenStr ?? '');
+    const order = matched ? Number(matched[1]) : NaN;
+    if (matched && Number.isInteger(order) && order >= 1) {
+      display = { onHome: true, order };
+    } else {
+      issues.push({
+        field: 'display',
+        severity: 'error',
+        message: `전시 토큰은 d{1 이상 정수}(홈 전시) 또는 nd(홈 비노출) 여야 합니다 (받음: ${tokenStr ?? '없음'})`,
+      });
+    }
   }
 
   if (!METHODS.includes(method)) {
@@ -62,7 +80,7 @@ export function parseDisplayId(id: string): Result<DisplaySpec> {
       ok: true,
       value: {
         env: env as 'c' | 'ct',
-        order,
+        display,
         method: method as 'p' | 's',
         type: 't',
         userTypes: chars as UserTypeChar[],
@@ -82,7 +100,7 @@ export function parseDisplayId(id: string): Result<DisplaySpec> {
 
     return {
       ok: true,
-      value: { env: env as 'c' | 'ct', order, method: method as 'p' | 's', type: 'b', brandNo: detail },
+      value: { env: env as 'c' | 'ct', display, method: method as 'p' | 's', type: 'b', brandNo: detail },
     };
   }
 
@@ -91,7 +109,7 @@ export function parseDisplayId(id: string): Result<DisplaySpec> {
 
     return {
       ok: true,
-      value: { env: env as 'c' | 'ct', order, method: method as 'p' | 's', type: 'n', label: detail },
+      value: { env: env as 'c' | 'ct', display, method: method as 'p' | 's', type: 'n', label: detail },
     };
   }
 

@@ -7,8 +7,8 @@ import {
 } from './validators';
 
 const SECTIONS: SectionEntry[] = [
-  { sectionNo: 1, sectionId: 'c_1_p_t_병부장', sectionName: '병부장' },
-  { sectionNo: 2, sectionId: 'ct_3_s_b_43215615', sectionName: '필립스' },
+  { sectionNo: 1, sectionId: 'c_d1_p_t_병부장', sectionName: '병부장' },
+  { sectionNo: 2, sectionId: 'ct_d3_s_b_43215615', sectionName: '필립스' },
 ];
 
 describe('validateStripAccountName', () => {
@@ -18,8 +18,8 @@ describe('validateStripAccountName', () => {
   });
 
   it('형식 OK + 진열 존재 → 통과', () => {
-    expect(validateStripAccountName(0, 'c_1_p_t_병부장', SECTIONS)).toBeNull();
-    expect(validateStripAccountName(1, 'ct_3_s_b_43215615', SECTIONS)).toBeNull();
+    expect(validateStripAccountName(0, 'c_d1_p_t_병부장', SECTIONS)).toBeNull();
+    expect(validateStripAccountName(1, 'ct_d3_s_b_43215615', SECTIONS)).toBeNull();
   });
 
   it('형식 위반 → 에러 메시지에 필드명·원본값·원인 포함', () => {
@@ -30,7 +30,7 @@ describe('validateStripAccountName', () => {
   });
 
   it('형식 OK지만 진열 목록에 없음 → 에러', () => {
-    const issue = validateStripAccountName(2, 'c_9_p_t_곰', SECTIONS);
+    const issue = validateStripAccountName(2, 'c_d9_p_t_곰', SECTIONS);
     expect(issue?.field).toBe('구좌 3 진열 ID');
     expect(issue?.reason).toMatch(/찾을 수 없는/);
   });

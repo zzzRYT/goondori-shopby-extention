@@ -11,12 +11,12 @@ const sample = [
 describe('BrandShowcase', () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it('로딩 중엔 스켈레톤을 보여준다', () => {
+  it('로딩 중엔 로딩 인디케이터를 보여준다', () => {
     vi.spyOn(api, 'fetchShowcaseBrands').mockReturnValue(new Promise(() => {}));
 
     render(<BrandShowcase />);
 
-    expect(screen.getByTestId('brand-showcase-skeleton')).toBeTruthy();
+    expect(screen.getByTestId('brand-showcase-loading')).toBeTruthy();
   });
 
   it('에러 상태에선 메시지와 다시 시도 버튼을 표시한다', async () => {

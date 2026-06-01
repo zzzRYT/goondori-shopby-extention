@@ -65,6 +65,40 @@ describe('findBrandRow (admin-brand-tree.html 실제 트리)', () => {
   });
 });
 
+// 실제 어드민 트리는 textContent에 개행/연속공백/zero-width를 남기는 경우가 있어
+// strict === 비교만으론 보이는 브랜드도 못 찾는다. 정규화 후 매칭되는지 검증.
+describe('findBrandRow (textContent 공백 정규화)', () => {
+  function treeWith(contentText: string): Document {
+    const doc = new DOMParser().parseFromString(
+      `<div class="TreeV2_tree__x">
+         <li><div class="TreeV2_item-label__y" draggable="true">
+           <div class="TreeV2_content__z">${contentText}</div>
+         </div></li>
+       </div>`,
+      'text/html',
+    );
+    return doc;
+  }
+
+  it('앞뒤 개행·들여쓰기가 섞여도 매칭한다', () => {
+    const doc = treeWith('\n      BOSE\n    ');
+    const row = findBrandRow(doc, { name: 'BOSE', brandNo: 1 });
+    expect(row?.matches(BRAND_TREE_ITEM_LABEL_SELECTOR)).toBe(true);
+  });
+
+  it('내부 연속 공백은 1칸으로 정규화해 매칭한다', () => {
+    const doc = treeWith('스위스  밀리터리');
+    const row = findBrandRow(doc, { name: '스위스 밀리터리', brandNo: 2 });
+    expect(row).not.toBeNull();
+  });
+
+  it('zero-width 문자가 섞여 있어도 매칭한다', () => {
+    const doc = treeWith('BO​SE');
+    const row = findBrandRow(doc, { name: 'BOSE', brandNo: 3 });
+    expect(row).not.toBeNull();
+  });
+});
+
 describe('openBrandEditor', () => {
   beforeEach(() => {
     document.body.innerHTML = '';

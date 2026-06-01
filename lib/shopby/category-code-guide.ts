@@ -18,6 +18,7 @@ function buildGuide(doc: Document): HTMLElement {
       <li><code>ct_&lt;순번&gt;</code> — 개발(dev) 상위 카테고리 (예: <code>ct_1</code>, <code>ct_2</code>)</li>
     </ul>
     <p style="margin:0">하위 카테고리는 관리코드를 쓰지 않습니다.</p>
+    <p style="margin:6px 0 0;padding:6px 8px;background:#fef2f2;border-left:3px solid #dc2626;border-radius:4px;color:#b91c1c;font-weight:600">🔴 노출 빼기(삭제): 상위 관리코드 <code>c_1</code>·<code>ct_1</code> 등의 값을 <code>''</code>(빈 값)으로 바꿔 저장하면 코드순 목록에서 제외됩니다.</p>
     <p style="margin:6px 0 0">익스텐션의 <strong>전시카테고리</strong> 탭에서 노출 모습을 미리 볼 수 있어요.</p>
   `;
   return aside;

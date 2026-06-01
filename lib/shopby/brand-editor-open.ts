@@ -1,9 +1,12 @@
-import type { OpenBrandEditorRequest, OpenBrandEditorResult } from '../messaging';
+import type {
+  OpenBrandEditorRequest,
+  OpenBrandEditorResult,
+} from '../messaging';
 import {
   BRAND_TREE_CONTAINER_SELECTOR,
   BRAND_TREE_CONTENT_SELECTOR,
   BRAND_TREE_ITEM_LABEL_SELECTOR,
-  EXTRA_INFO_TEXTAREA_SELECTOR,
+  EXTRA_INFO_INPUT_SELECTOR,
 } from './selectors';
 
 // 이름 없는 브랜드는 사이드바에서 "브랜드 #{brandNo}" 로 보이지만
@@ -21,15 +24,25 @@ export function nameCandidates(request: OpenBrandEditorRequest): string[] {
   return [...candidates];
 }
 
-// 트리 row에서 브랜드 이름이 일치하는 item-label 엘리먼트를 반환한다.
-// 동일 텍스트가 여럿이면 첫 매치(트리 정렬상 사실상 유일).
-export function findBrandRow(doc: Document | Element, request: OpenBrandEditorRequest): HTMLElement | null {
-  const candidates = nameCandidates(request);
-  const contents = doc.querySelectorAll<HTMLElement>(BRAND_TREE_CONTENT_SELECTOR);
+function normalizeLabel(text: string): string {
+  return text
+    .replace(/[​‌‍﻿]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export function findBrandRow(
+  doc: Document | Element,
+  request: OpenBrandEditorRequest,
+): HTMLElement | null {
+  const candidates = nameCandidates(request).map(normalizeLabel);
+  const contents = doc.querySelectorAll<HTMLElement>(
+    BRAND_TREE_CONTENT_SELECTOR,
+  );
 
   for (const content of contents) {
-    const text = content.textContent?.trim() ?? '';
-    if (!candidates.includes(text)) continue;
+    const text = normalizeLabel(content.textContent ?? '');
+    if (!text || !candidates.includes(text)) continue;
 
     const label = content.closest<HTMLElement>(BRAND_TREE_ITEM_LABEL_SELECTOR);
     if (label) return label;
@@ -70,7 +83,9 @@ async function findWithScroll(
   const immediate = findBrandRow(doc, request);
   if (immediate) return immediate;
 
-  const container = doc.querySelector<HTMLElement>(BRAND_TREE_CONTAINER_SELECTOR);
+  const container = doc.querySelector<HTMLElement>(
+    BRAND_TREE_CONTAINER_SELECTOR,
+  );
   if (!container) return null;
 
   container.scrollTop = 0;
@@ -87,13 +102,22 @@ async function findWithScroll(
   return findBrandRow(doc, request);
 }
 
-// extraInfo textarea가 나타날 때까지 짧게 대기 후 focus + scrollIntoView.
-async function focusExtraInfoSoon(doc: Document, opts: typeof DEFAULT_OPTIONS): Promise<void> {
+// extraInfo input이 나타날 때까지 짧게 대기 후, 편집 섹션("브랜드 기본 설정")이
+// 화면에 보이도록 input을 뷰포트 중앙으로 스크롤하고 focus한다.
+// 좌측 트리(브랜드 목록)는 건드리지 않는다 — 목록이 멋대로 움직이면 안 되므로
+// label.scrollIntoView는 호출하지 않고, 우측 입력 영역만 스크롤한다.
+// scrollIntoView 후 focus가 다시 스크롤을 유발하지 않도록 preventScroll을 준다.
+async function focusExtraInfoSoon(
+  doc: Document,
+  opts: typeof DEFAULT_OPTIONS,
+): Promise<void> {
   for (let step = 0; step < opts.maxScrollSteps; step += 1) {
-    const ta = doc.querySelector<HTMLTextAreaElement>(EXTRA_INFO_TEXTAREA_SELECTOR);
-    if (ta) {
-      ta.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
-      ta.focus({ preventScroll: true });
+    const input = doc.querySelector<HTMLInputElement>(
+      EXTRA_INFO_INPUT_SELECTOR,
+    );
+    if (input) {
+      input.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+      input.focus({ preventScroll: true });
       return;
     }
     await sleep(opts.waitMs);
@@ -101,9 +125,9 @@ async function focusExtraInfoSoon(doc: Document, opts: typeof DEFAULT_OPTIONS): 
 }
 
 // 사이드바 row 클릭 핸들러의 본체. 관리자 페이지 내부에서:
-// 1) 트리에서 일치하는 row 찾기 (필요하면 스크롤)
+// 1) 트리에서 일치하는 row 찾기 (필요하면 컨테이너 스크롤로 탐색)
 // 2) 라벨 클릭 → SPA가 편집 폼으로 전환
-// 3) 새 textarea 등장하면 focus + scroll
+// 3) 새 input 등장하면 편집 섹션을 화면에 보이도록 스크롤 + focus
 export async function openBrandEditor(
   doc: Document,
   request: OpenBrandEditorRequest,
@@ -117,10 +141,12 @@ export async function openBrandEditor(
   const opts = { ...DEFAULT_OPTIONS, ...options };
   const label = await findWithScroll(doc, request, opts);
   if (!label) {
-    return { status: 'not-found', message: '관리자 트리에서 해당 브랜드를 찾지 못했어요' };
+    return {
+      status: 'not-found',
+      message: '',
+    };
   }
 
-  label.scrollIntoView?.({ block: 'center' });
   label.click();
   await focusExtraInfoSoon(doc, opts);
 

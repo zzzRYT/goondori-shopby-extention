@@ -54,3 +54,19 @@ export const EXTRA_INFO_TEXTAREA_SELECTOR = 'textarea[name="extraInfo"]';
 export const BRAND_TREE_CONTAINER_SELECTOR = '[class*="TreeV2_tree__"]';
 export const BRAND_TREE_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
 export const BRAND_TREE_CONTENT_SELECTOR = '[class*="TreeV2_content__"]';
+
+// 전시카테고리 편집 페이지. name 속성이 없어 CSS 모듈 클래스 prefix(substring) 매칭.
+// suffix(__0-V7R 등)는 빌드 해시라 변동 가능.
+export const DISPLAY_CATEGORY_CODE_INPUT_SELECTOR =
+  '[class*="display-category-management_input-code__"]';
+export const DISPLAY_CATEGORY_NAME_INPUT_SELECTOR =
+  '[class*="display-category-management_input-name__"]';
+export const DISPLAY_CATEGORY_TREE_SELECTOR =
+  '[class*="display-category-management_category-tree__"]';
+export const DISPLAY_CATEGORY_NAME_WRAP_SELECTOR =
+  '[class*="display-category-management_category-name-wrap__"]';
+// 전시카테고리 트리도 브랜드와 동일한 TreeV2 컴포넌트(중첩 계층)다. 클릭 타깃은 item-label.
+export const DISPLAY_CATEGORY_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
+// 트리 상단 "전체 열기"/"전체 닫기" 버튼(같은 클래스) — 텍스트로 구분해 "전체 열기"만 클릭.
+export const DISPLAY_CATEGORY_TREE_TOOL_BUTTON_SELECTOR =
+  '[class*="display-category-management_right-btn__"]';

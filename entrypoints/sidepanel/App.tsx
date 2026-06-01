@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { BrandShowcase } from './ui/BrandShowcase';
+import { CategoryShowcase } from './ui/CategoryShowcase';
 import { DisplayWorkspace } from './ui/DisplayWorkspace';
 import { Tabs, type TabItem } from './ui/Tabs';
 
 const TABS: TabItem[] = [
   { id: 'display', label: '진열' },
   { id: 'brand', label: '브랜드' },
+  { id: 'category', label: '전시카테고리' },
 ];
 
 export default function App() {
@@ -25,6 +27,7 @@ export default function App() {
       <section className="app__workspace" aria-label="작업 영역">
         {activeTab === 'display' && <DisplayWorkspace />}
         {activeTab === 'brand' && <BrandShowcase />}
+        {activeTab === 'category' && <CategoryShowcase />}
       </section>
     </main>
   );

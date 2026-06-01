@@ -9,12 +9,15 @@ const HOST = { hostname: 'service.shopby.co.kr', waitMs: 1, alertTimeoutMs: 200 
 
 type Wiring = {
   savedCodes: string[];
-  // 저장 시 띄울 메시지를 단계별로 결정(없으면 성공 문구).
-  alertFor?: (saveIndex: number, code: string) => string;
+  dupCheckedCodes: string[];
+  // 중복 확인 시 띄울 메시지(코드별). 없으면 사용 가능.
+  dupAlertFor?: (code: string) => string;
+  // 저장 시 띄울 메시지(저장 순번별). 없으면 성공.
+  saveAlertFor?: (saveIndex: number, code: string) => string;
 };
 
-// 카테고리 이름 목록으로 가짜 어드민 폼 DOM을 만들고, 저장 버튼이 confirm+alert을
-// 부르도록 배선한다(실제 저장 흐름 모사).
+// 카테고리 이름 목록으로 가짜 어드민 폼 DOM을 만들고, 중복확인·저장 버튼이 각각
+// alert을 부르도록 배선한다(실제 플로우 모사: 코드입력 → 중복확인 → 저장).
 function buildAdmin(names: string[], wiring: Wiring): void {
   const rows = names
     .map(
@@ -25,21 +28,36 @@ function buildAdmin(names: string[], wiring: Wiring): void {
   document.body.innerHTML = `
     <button class="display-category-management_right-btn__a"><span>전체 열기</span></button>
     <div class="display-category-management_category-tree__t">${rows}</div>
-    <input class="display-category-management_input-code__c" />
+    <td>
+      <input class="display-category-management_input-code__c" />
+      <button type="button" class="btn white">중복확인</button>
+    </td>
     <div class="bottom-bar"><button type="submit">저장</button></div>`;
 
-  let saveIndex = 0;
-  const button = document.querySelector('.bottom-bar button')!;
   const input = document.querySelector<HTMLInputElement>('.display-category-management_input-code__c')!;
-  button.addEventListener('click', () => {
+
+  const dupButton = document.querySelector('.btn.white')!;
+  dupButton.addEventListener('click', () => {
+    const code = input.value;
+    wiring.dupCheckedCodes.push(code);
+    window.alert(wiring.dupAlertFor?.(code) ?? '사용 가능한 관리코드입니다.');
+  });
+
+  let saveIndex = 0;
+  const saveButton = document.querySelector('.bottom-bar button')!;
+  saveButton.addEventListener('click', () => {
     const code = input.value;
     wiring.savedCodes.push(code);
     const ok = window.confirm('저장하시겠습니까?');
     if (!ok) return;
-    const msg = wiring.alertFor?.(saveIndex, code) ?? '저장되었습니다.';
+    const msg = wiring.saveAlertFor?.(saveIndex, code) ?? '저장되었습니다.';
     saveIndex += 1;
     window.alert(msg);
   });
+}
+
+function freshWiring(extra: Partial<Wiring> = {}): Wiring {
+  return { savedCodes: [], dupCheckedCodes: [], ...extra };
 }
 
 describe('applyCategoryReorder', () => {
@@ -57,8 +75,8 @@ describe('applyCategoryReorder', () => {
     expect(result.applied).toBe(0);
   });
 
-  it('모든 단계가 성공하면 done, 코드가 순서대로 저장된다', async () => {
-    const wiring: Wiring = { savedCodes: [] };
+  it('각 단계에서 중복확인 후 저장하고, 코드가 순서대로 저장된다', async () => {
+    const wiring = freshWiring();
     buildAdmin(['A', 'B'], wiring);
     const steps: CategoryReorderStep[] = [
       { categoryNo: 1, name: 'A', newCode: 'c_3' },
@@ -70,18 +88,18 @@ describe('applyCategoryReorder', () => {
 
     expect(result.status).toBe('done');
     expect(result.applied).toBe(3);
+    expect(wiring.dupCheckedCodes).toEqual(['c_3', 'c_1', 'c_2']);
     expect(wiring.savedCodes).toEqual(['c_3', 'c_1', 'c_2']);
   });
 
-  it('저장 후 에러 문구가 나오면 그 단계에서 중단(partial)하고 위치를 보고한다', async () => {
-    const wiring: Wiring = {
-      savedCodes: [],
-      alertFor: (i) => (i === 1 ? '이미 사용 중인 관리코드입니다.' : '저장되었습니다.'),
-    };
+  it('중복확인에서 "중복" 문구가 뜨면 저장하지 않고 그 단계에서 중단한다', async () => {
+    const wiring = freshWiring({
+      dupAlertFor: (code) => (code === 'c_1' ? '이미 사용 중인 관리코드입니다.' : '사용 가능합니다.'),
+    });
     buildAdmin(['A', 'B'], wiring);
     const steps: CategoryReorderStep[] = [
       { categoryNo: 1, name: 'A', newCode: 'c_3' },
-      { categoryNo: 2, name: 'B', newCode: 'c_1' },
+      { categoryNo: 2, name: 'B', newCode: 'c_1' }, // 중복 → 중단
       { categoryNo: 1, name: 'A', newCode: 'c_2' },
     ];
 
@@ -91,10 +109,29 @@ describe('applyCategoryReorder', () => {
     expect(result.applied).toBe(1);
     expect(result.failedAt?.index).toBe(1);
     expect(result.failedAt?.name).toBe('B');
+    // c_1은 저장까지 가지 않는다(중복확인에서 차단).
+    expect(wiring.savedCodes).toEqual(['c_3']);
+  });
+
+  it('중복확인은 통과했는데 저장에서 에러 문구가 나오면 중단한다', async () => {
+    const wiring = freshWiring({
+      saveAlertFor: (i) => (i === 1 ? '저장에 실패했습니다.' : '저장되었습니다.'),
+    });
+    buildAdmin(['A', 'B'], wiring);
+    const steps: CategoryReorderStep[] = [
+      { categoryNo: 1, name: 'A', newCode: 'c_3' },
+      { categoryNo: 2, name: 'B', newCode: 'c_1' },
+    ];
+
+    const result = await applyCategoryReorder(document, { env: 'c', steps }, HOST);
+
+    expect(result.status).toBe('partial');
+    expect(result.applied).toBe(1);
+    expect(result.failedAt?.index).toBe(1);
   });
 
   it('트리에서 카테고리를 못 찾으면 중단(첫 단계면 aborted)', async () => {
-    const wiring: Wiring = { savedCodes: [] };
+    const wiring = freshWiring();
     buildAdmin(['A'], wiring); // B 없음
     const steps: CategoryReorderStep[] = [{ categoryNo: 2, name: 'B', newCode: 'c_1' }];
 
@@ -106,7 +143,7 @@ describe('applyCategoryReorder', () => {
   });
 
   it('완료 후 자동확인 플래그를 해제한다', async () => {
-    const wiring: Wiring = { savedCodes: [] };
+    const wiring = freshWiring();
     buildAdmin(['A'], wiring);
     const steps: CategoryReorderStep[] = [{ categoryNo: 1, name: 'A', newCode: 'c_2' }];
 

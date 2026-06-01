@@ -1,8 +1,6 @@
 import {
   onMessage,
   sendMessage,
-  type ApplyCategoryReorderRequest,
-  type ApplyCategoryReorderResult,
   type FillField,
   type FillResult,
   type OpenBrandEditorRequest,
@@ -21,7 +19,6 @@ export default defineBackground(() => {
   onMessage('readCurrentDisplay', async () => sendToActiveTab('readCurrentDisplay', undefined));
   onMessage('openBrandEditor', async (message) => relayOpenBrandEditor(message.data));
   onMessage('openCategoryEditor', async (message) => relayOpenCategoryEditor(message.data));
-  onMessage('applyCategoryReorder', async (message) => relayApplyCategoryReorder(message.data));
 });
 
 async function sendToActiveTab(type: 'fillDisplay', fields: FillField[]): Promise<FillResult>;
@@ -71,24 +68,5 @@ async function relayOpenCategoryEditor(
     return await sendMessage('openCategoryEditor', request, activeTab.id);
   } catch (error) {
     return { status: 'wrong-host', message: error instanceof Error ? error.message : '관리자 탭이 아니에요' };
-  }
-}
-
-async function relayApplyCategoryReorder(
-  request: ApplyCategoryReorderRequest,
-): Promise<ApplyCategoryReorderResult> {
-  const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-  if (activeTab?.id == null) {
-    return { status: 'wrong-host', applied: 0 };
-  }
-
-  try {
-    return await sendMessage('applyCategoryReorder', request, activeTab.id);
-  } catch (error) {
-    return {
-      status: 'aborted',
-      applied: 0,
-      failedAt: { index: 0, name: '', reason: error instanceof Error ? error.message : '관리자 탭과 통신할 수 없어요' },
-    };
   }
 }

@@ -1042,30 +1042,3 @@ textarea:focus-visible {
 .category-showcase__skeleton-row { height: 44px; border-radius: 8px; background: linear-gradient(90deg, #f2f2f2, #e9e9e9, #f2f2f2); }
 .category-showcase__error { color: #b42318; font-size: 13px; display: flex; flex-direction: column; gap: 8px; }
 .category-showcase__empty { color: #667085; font-size: 13px; line-height: 1.5; }
-
-/* 전시카테고리 순서 변경 */
-.category-reorder { display: flex; flex-direction: column; gap: 10px; background: #fafafa; border: 1px solid #ebebeb; border-radius: 8px; padding: 12px; }
-.category-reorder__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.category-reorder__row { display: flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #ebebeb; border-radius: 6px; padding: 6px 8px; }
-.category-reorder__pos { width: 18px; text-align: center; font-size: 12px; color: #8a8a8a; font-variant-numeric: tabular-nums; }
-.category-reorder__code { font-size: 12px; color: #3fb382; font-weight: 600; }
-.category-reorder__name { flex: 1 0 0; font-size: 14px; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.category-reorder__moves { display: flex; gap: 2px; }
-.category-reorder__move { width: 26px; height: 26px; border: 1px solid #dcdcdc; background: #fff; border-radius: 6px; cursor: pointer; font-size: 11px; color: #474747; line-height: 1; }
-.category-reorder__move:hover:not(:disabled) { border-color: #3fb382; color: #3fb382; }
-.category-reorder__move:disabled { opacity: 0.35; cursor: default; }
-.category-reorder__actions { display: flex; gap: 8px; }
-.category-reorder__apply { border: 0; background: #3fb382; color: #fff; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; }
-.category-reorder__apply:disabled { opacity: 0.4; cursor: default; }
-.category-reorder__cancel { border: 1px solid #dcdcdc; background: #fff; color: #474747; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
-.category-reorder__dialog { border: 1px solid #dcdcdc; border-radius: 8px; background: #fff; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
-.category-reorder__warn { margin: 0; font-size: 12px; line-height: 1.5; color: #b54708; background: #fffaeb; border: 1px solid #fedf89; border-radius: 6px; padding: 8px 10px; }
-.category-reorder__plan { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; max-height: 180px; overflow-y: auto; }
-.category-reorder__plan li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
-.category-reorder__plan-name { flex: 1 0 0; color: #171717; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.category-reorder__plan-code { font-family: ui-monospace, monospace; color: #3fb382; font-weight: 600; }
-.category-reorder__plan-count { margin: 0; font-size: 12px; color: #8a8a8a; text-align: right; }
-.category-reorder__dialog-actions { display: flex; gap: 8px; justify-content: flex-end; }
-.category-reorder__status { margin: 0; font-size: 13px; color: #474747; }
-.category-reorder__status[data-status='done'] { color: #027a48; }
-.category-reorder__status[data-status='partial'], .category-reorder__status[data-status='aborted'], .category-reorder__status[data-status='error'] { color: #b42318; }

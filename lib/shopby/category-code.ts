@@ -15,8 +15,3 @@ export function parseCategoryCode(code: string): CategoryCode | null {
 
   return { env: match[1] as Env, order };
 }
-
-// 환경+순번을 전시 상위 카테고리 관리코드 문자열로 조립한다. parseCategoryCode의 역.
-export function buildCategoryCode(env: Env, order: number): string {
-  return `${env}_${order}`;
-}

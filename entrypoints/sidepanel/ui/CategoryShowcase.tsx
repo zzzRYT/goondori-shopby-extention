@@ -7,7 +7,6 @@ import type { Env } from '../../../lib/display-id/types';
 import { useRemoteList } from '../hooks/useRemoteList';
 import { CategoryList } from './CategoryList';
 import { CategoryPreview } from './CategoryPreview';
-import { CategoryReorder } from './CategoryReorder';
 
 const ENV_LABEL: Record<Env, string> = { c: '운영(c)', ct: '개발(ct)' };
 
@@ -90,7 +89,6 @@ export function CategoryShowcase() {
             onSelect={setSelectedNo}
             onOpen={handleOpen}
           />
-          <CategoryReorder env={env} tops={tops} onApplied={reload} />
           <CategoryList tops={tops} onOpen={handleOpen} />
         </>
       )}

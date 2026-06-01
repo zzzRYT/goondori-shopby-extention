@@ -5,6 +5,7 @@ import type { DisplayCategoryEntry } from '../../../lib/shopby/api/types';
 import { filterTopCategoriesByEnv } from '../../../lib/shopby/display-categories';
 import type { Env } from '../../../lib/display-id/types';
 import { useRemoteList } from '../hooks/useRemoteList';
+import { CategoryGuide } from './CategoryGuide';
 import { CategoryList } from './CategoryList';
 import { CategoryPreview } from './CategoryPreview';
 
@@ -57,6 +58,8 @@ export function CategoryShowcase() {
           ↻ 새로고침
         </button>
       </header>
+
+      <CategoryGuide />
 
       {status === 'loading' && (
         <div className="category-showcase__skeleton" data-testid="category-showcase-skeleton" aria-busy="true">

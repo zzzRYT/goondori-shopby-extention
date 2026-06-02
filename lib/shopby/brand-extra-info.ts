@@ -40,3 +40,30 @@ export function parseBrandSlots(brands: ShowcaseBrand[], env: BrandEnv): SlotAss
   assignments.sort((a, b) => a.slot - b.slot);
   return assignments;
 }
+
+// 리스트(브라우즈·점프)용 상태 필터. slot이 null이면 "미설정" 행이다.
+// - displayed: 현재 env 슬롯이 있는 브랜드(슬롯 오름차순). 카루셀과 동일 집합.
+// - unset:     현재 env 슬롯이 없는 브랜드(브랜드명 가나다순), slot=null.
+// - all:       displayed(슬롯순) 다음에 unset(가나다순).
+export type BrandListFilter = 'displayed' | 'unset' | 'all';
+export type BrandRow = { brand: ShowcaseBrand; slot: number | null };
+
+export function selectBrandRowsByStatus(
+  brands: ShowcaseBrand[],
+  env: BrandEnv,
+  filter: BrandListFilter,
+): BrandRow[] {
+  const displayed: BrandRow[] = parseBrandSlots(brands, env).map((a) => ({
+    brand: a.brand,
+    slot: a.slot,
+  }));
+  if (filter === 'displayed') return displayed;
+
+  const unset: BrandRow[] = brands
+    .filter((brand) => extractSlots(brand.extraInfo, env).length === 0)
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    .map((brand) => ({ brand, slot: null }));
+  if (filter === 'unset') return unset;
+
+  return [...displayed, ...unset];
+}

@@ -57,6 +57,28 @@ describe('CategoryShowcase', () => {
     expect(screen.queryByText('베스트')).toBeNull();
   });
 
+  it('전체 필터로 전환하면 미설정(다른 env 코드) 카테고리도 리스트에 보인다', async () => {
+    stubFetch(routed());
+    render(<CategoryShowcase />);
+    await waitFor(() => expect(screen.getAllByText('베스트').length).toBeGreaterThan(0));
+    // 기본(전시중)에서는 ct_ 카테고리가 안 보인다.
+    expect(screen.queryByText('테스트탭')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /전체/ }));
+    await waitFor(() => expect(screen.getByText('테스트탭')).toBeTruthy());
+  });
+
+  it('코드 상위가 없어도 전체 필터로 미분류 카테고리를 점프할 수 있다', async () => {
+    stubFetch(
+      routed([{ displayCategoryNo: 9, displayCategoryName: '미분류', displayManagementCode: '' }], {}),
+    );
+    render(<CategoryShowcase />);
+    await waitFor(() => expect(screen.getByText(/코드 설정된 상위 카테고리가 없습니다/)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole('button', { name: /전체/ }));
+    await waitFor(() => expect(screen.getByText('미분류')).toBeTruthy());
+  });
+
   it('로딩 중에는 로딩 인디케이터를 보여준다', () => {
     stubFetch(() => new Promise(() => {})); // never resolves
     render(<CategoryShowcase />);

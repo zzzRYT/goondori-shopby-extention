@@ -20,7 +20,7 @@ describe('BrandShowcaseList', () => {
   });
 
   it('전달된 순서대로 행을 렌더하고 prod 환경은 c_n 라벨을 쓴다', () => {
-    render(<BrandShowcaseList assignments={assignments} env="prod" />);
+    render(<BrandShowcaseList rows={assignments} env="prod" />);
 
     const rows = screen.getAllByTestId('brand-list-row');
     expect(rows).toHaveLength(3);
@@ -32,13 +32,13 @@ describe('BrandShowcaseList', () => {
   });
 
   it('dev 환경에선 ct_n 라벨을 쓴다', () => {
-    render(<BrandShowcaseList assignments={assignments.slice(0, 1)} env="dev" />);
+    render(<BrandShowcaseList rows={assignments.slice(0, 1)} env="dev" />);
 
     expect(screen.getByText('ct_1')).toBeTruthy();
   });
 
   it('동일 슬롯이 둘 이상인 행에는 충돌 표시가 붙는다', () => {
-    render(<BrandShowcaseList assignments={assignments} env="prod" />);
+    render(<BrandShowcaseList rows={assignments} env="prod" />);
 
     const conflictRows = screen.getAllByLabelText('동일 슬롯 충돌');
     expect(conflictRows).toHaveLength(2);
@@ -47,14 +47,14 @@ describe('BrandShowcaseList', () => {
   });
 
   it('imageUrl이 비면 placeholder가 노출된다', () => {
-    render(<BrandShowcaseList assignments={[assignments[1]]} env="prod" />);
+    render(<BrandShowcaseList rows={[assignments[1]]} env="prod" />);
 
     const img = screen.queryByRole('img');
     expect(img).toBeNull();
   });
 
   it('row 클릭 시 openBrandEditor 메시지를 보낸다', async () => {
-    render(<BrandShowcaseList assignments={assignments} env="prod" />);
+    render(<BrandShowcaseList rows={assignments} env="prod" />);
 
     const rows = screen.getAllByTestId('brand-list-row');
     fireEvent.click(rows[1]);
@@ -69,7 +69,7 @@ describe('BrandShowcaseList', () => {
       status: 'not-found',
       message: '관리자 트리에서 해당 브랜드를 찾지 못했어요',
     });
-    render(<BrandShowcaseList assignments={assignments} env="prod" />);
+    render(<BrandShowcaseList rows={assignments} env="prod" />);
 
     const rows = screen.getAllByTestId('brand-list-row');
     fireEvent.click(rows[0]);

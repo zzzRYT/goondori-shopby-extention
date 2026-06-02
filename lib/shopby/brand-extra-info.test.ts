@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ShowcaseBrand } from './api/types';
-import { parseBrandSlots } from './brand-extra-info';
+import { parseBrandSlots, selectBrandRowsByStatus } from './brand-extra-info';
 
 function brand(brandNo: number, extraInfo: string): ShowcaseBrand {
   return { brandNo, name: `브랜드${brandNo}`, extraInfo, imageUrl: '' };
@@ -60,5 +60,38 @@ describe('parseBrandSlots', () => {
     );
 
     expect(result.map((r) => r.brand.brandNo)).toEqual([5]);
+  });
+});
+
+describe('selectBrandRowsByStatus', () => {
+  const brands = [brand(1, 'c_2'), brand(2, ''), brand(3, 'c_1'), brand(4, 'ct_1')];
+
+  it('displayed — 현재 env 슬롯이 있는 브랜드만(슬롯순)', () => {
+    const result = selectBrandRowsByStatus(brands, 'prod', 'displayed');
+    expect(result.map((r) => ({ slot: r.slot, no: r.brand.brandNo }))).toEqual([
+      { slot: 1, no: 3 },
+      { slot: 2, no: 1 },
+    ]);
+  });
+
+  it('unset — 현재 env 슬롯이 없는 브랜드(slot=null, 가나다순)', () => {
+    const result = selectBrandRowsByStatus(brands, 'prod', 'unset');
+    // 브랜드2(빈값)·브랜드4(ct_1)는 prod 슬롯이 없다.
+    expect(result.map((r) => ({ slot: r.slot, no: r.brand.brandNo }))).toEqual([
+      { slot: null, no: 2 },
+      { slot: null, no: 4 },
+    ]);
+  });
+
+  it('all — displayed 다음에 unset', () => {
+    const result = selectBrandRowsByStatus(brands, 'prod', 'all');
+    expect(result.map((r) => r.brand.brandNo)).toEqual([3, 1, 2, 4]);
+  });
+
+  it('원본 배열을 변형하지 않는다', () => {
+    const input = [brand(1, 'c_2'), brand(2, '')];
+    const snapshot = input.map((b) => b.brandNo);
+    selectBrandRowsByStatus(input, 'prod', 'all');
+    expect(input.map((b) => b.brandNo)).toEqual(snapshot);
   });
 });

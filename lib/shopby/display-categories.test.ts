@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { countUnclassifiedTop, filterTopCategoriesByEnv, type DisplayCategoryEntry } from './display-categories';
+import {
+  countUnclassifiedTop,
+  filterTopCategoriesByEnv,
+  selectTopCategoriesByStatus,
+  type DisplayCategoryEntry,
+} from './display-categories';
 
 const tree: DisplayCategoryEntry[] = [
   { categoryNo: 1, name: '베스트', managementCode: 'c_1', depth: 1, children: [
@@ -29,5 +34,22 @@ describe('filterTopCategoriesByEnv', () => {
 describe('countUnclassifiedTop', () => {
   it('코드 없는 상위 개수를 센다', () => {
     expect(countUnclassifiedTop(tree)).toBe(1);
+  });
+});
+
+describe('selectTopCategoriesByStatus', () => {
+  it('displayed — 현재 env 코드 박힌 상위만(코드 순)', () => {
+    const result = selectTopCategoriesByStatus(tree, 'c', 'displayed');
+    expect(result.map((c) => c.categoryNo)).toEqual([1]);
+  });
+
+  it('unset — 현재 env 코드 없는 상위(다른 env 코드·미분류 포함, 원본 순서)', () => {
+    const result = selectTopCategoriesByStatus(tree, 'c', 'unset');
+    expect(result.map((c) => c.categoryNo)).toEqual([2, 3]);
+  });
+
+  it('all — displayed 다음에 unset', () => {
+    const result = selectTopCategoriesByStatus(tree, 'c', 'all');
+    expect(result.map((c) => c.categoryNo)).toEqual([1, 2, 3]);
   });
 });

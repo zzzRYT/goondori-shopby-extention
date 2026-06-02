@@ -5,8 +5,10 @@ import { ValidationToast } from './ValidationToast';
 import { getCachedSections } from './sectionsCache';
 import {
   validateActiveAccountCount,
+  validateBannerImage,
   validateMainSize,
   validateStripAccountName,
+  validateStripHeight,
   type ValidationIssue,
 } from './validators';
 
@@ -142,7 +144,23 @@ async function collectStripIssues(root: Document, loadSections: SectionsLoader):
   inputs.forEach((input, index) => {
     const issue = validateStripAccountName(index, input.value, sections);
     if (issue) issues.push({ ...issue, focusTarget: () => input });
+
+    // 진열 ID가 입력된(사용 중) 구좌는 배너 이미지도 있어야 한다.
+    if (input.value.trim()) {
+      const accountIndex = accountIndexOf(input.name) ?? index;
+      const imageInput = findImageNameInput(root, accountIndex);
+      const imageIssue = validateBannerImage(index, accountHasImage(imageInput));
+      if (imageIssue) issues.push({ ...imageIssue, focusTarget: () => imageInput ?? input });
+    }
   });
+
+  // 세로(높이)는 84/104 두 값만 허용. 가로(16)는 시스템 고정이라 검증 대상이 아니다.
+  const heightInputs = root.querySelectorAll<HTMLInputElement>('input[name^="accounts."][name$=".height"]');
+  heightInputs.forEach((heightInput, index) => {
+    const issue = validateStripHeight(index, heightInput.value);
+    if (issue) issues.push({ ...issue, focusTarget: () => heightInput });
+  });
+
   return issues;
 }
 
@@ -165,21 +183,56 @@ function collectMainIssues(root: Document): ValidationIssue[] {
     issues.push({ ...activeIssue, focusTarget: firstYRadio ? () => firstYRadio : undefined });
   }
 
+  // 사용(Y) 구좌는 배너 이미지가 있어야 한다. 미사용 구좌는 이미지가 없어도 무방.
+  for (const toggle of readAccountToggles(root)) {
+    if (!toggle.active) continue;
+    const imageInput = findImageNameInput(root, toggle.index);
+    const imageIssue = validateBannerImage(toggle.index, accountHasImage(imageInput));
+    if (imageIssue) issues.push({ ...imageIssue, focusTarget: imageInput ? () => imageInput : undefined });
+  }
+
   return issues;
 }
 
-// "구좌 N" 헤더의 형제 라디오 그룹에서 value="Y"가 checked인 개수.
+type AccountToggle = { index: number; active: boolean };
+
+// "구좌 N" 헤더의 형제 라디오 그룹에서 사용 여부(value="Y" checked)를 읽어,
+// 헤더 텍스트의 N으로 accounts.{N-1} 인덱스를 매핑한다.
 // FieldHints의 findAccountToggleHeader와 같은 시그널을 사용.
-function countActiveAccounts(root: Document): number {
-  let count = 0;
+function readAccountToggles(root: Document): AccountToggle[] {
+  const toggles: AccountToggle[] = [];
   for (const h3 of Array.from(root.querySelectorAll('h3'))) {
-    const text = h3.textContent?.trim() ?? '';
-    if (!/^구좌\s*\d+/.test(text)) continue;
-    const parent = h3.parentElement;
-    const yRadio = parent?.querySelector<HTMLInputElement>('input.radio[value="Y"]');
-    if (yRadio?.checked) count += 1;
+    const match = /^구좌\s*(\d+)/.exec(h3.textContent?.trim() ?? '');
+    if (!match) continue;
+    const yRadio = h3.parentElement?.querySelector<HTMLInputElement>('input.radio[value="Y"]');
+    toggles.push({ index: Number(match[1]) - 1, active: yRadio?.checked ?? false });
   }
-  return count;
+  return toggles;
+}
+
+function countActiveAccounts(root: Document): number {
+  return readAccountToggles(root).filter((toggle) => toggle.active).length;
+}
+
+// accounts.{i}.… name에서 구좌 인덱스 i를 추출.
+function accountIndexOf(name: string): number | null {
+  const match = /^accounts\.(\d+)\./.exec(name);
+  return match ? Number(match[1]) : null;
+}
+
+const IMAGE_NAME_SUFFIX = '.banners.0.imageInfo.imageName';
+
+function findImageNameInput(root: Document, index: number): HTMLInputElement | null {
+  return root.querySelector<HTMLInputElement>(`input[name="accounts.${index}${IMAGE_NAME_SUFFIX}"]`);
+}
+
+// 배너 이미지는 입력값이 아니라 미리보기 <img alt="banner_image">로만 드러난다.
+// (imageName 텍스트 input은 이미지가 있어도 비어 있어 신뢰 불가.)
+// imageName input과 미리보기 <img>는 같은 <td> 안에 있어 그 셀 범위에서 찾는다.
+function accountHasImage(imageNameInput: HTMLInputElement | null): boolean {
+  const cell = imageNameInput?.closest('td');
+  const preview = cell?.querySelector<HTMLImageElement>('img[alt="banner_image"]');
+  return (preview?.getAttribute('src')?.trim().length ?? 0) > 0;
 }
 
 // 사용 구좌 개수 위반 시 토스트 클릭으로 이동할 첫 번째 구좌의 Y 라디오를 찾는다.

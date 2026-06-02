@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { SectionEntry } from '../../../lib/shopby/api/types';
 import {
   validateActiveAccountCount,
+  validateBannerImage,
   validateMainSize,
   validateStripAccountName,
+  validateStripHeight,
 } from './validators';
 
 const SECTIONS: SectionEntry[] = [
@@ -33,6 +35,43 @@ describe('validateStripAccountName', () => {
     const issue = validateStripAccountName(2, 'c_d9_p_t_곰', SECTIONS);
     expect(issue?.field).toBe('구좌 3 진열 ID');
     expect(issue?.reason).toMatch(/찾을 수 없는/);
+  });
+});
+
+describe('validateStripHeight', () => {
+  it('비어 있는 값은 검증 통과(기본값/미설정 구좌)', () => {
+    expect(validateStripHeight(0, '')).toBeNull();
+    expect(validateStripHeight(0, '   ')).toBeNull();
+  });
+
+  it('84 또는 104는 통과', () => {
+    expect(validateStripHeight(0, '84')).toBeNull();
+    expect(validateStripHeight(0, '104')).toBeNull();
+    expect(validateStripHeight(0, ' 84 ')).toBeNull();
+  });
+
+  it('84/104가 아니면 경고(필드명·원본값 포함)', () => {
+    const issue = validateStripHeight(0, '90');
+    expect(issue?.field).toBe('구좌 1 세로(높이)');
+    expect(issue?.reason).toMatch(/84 또는 104/);
+    expect(issue?.reason).toMatch(/90/);
+  });
+
+  it('숫자가 아니면 경고', () => {
+    expect(validateStripHeight(1, 'abc')?.field).toBe('구좌 2 세로(높이)');
+    expect(validateStripHeight(1, 'abc')?.reason).toMatch(/84 또는 104/);
+  });
+});
+
+describe('validateBannerImage', () => {
+  it('이미지가 있으면 통과', () => {
+    expect(validateBannerImage(0, true)).toBeNull();
+  });
+
+  it('이미지가 없으면 경고(필드명·안내 포함)', () => {
+    const issue = validateBannerImage(0, false);
+    expect(issue?.field).toBe('구좌 1 배너 이미지');
+    expect(issue?.reason).toMatch(/이미지가 설정되지 않/);
   });
 });
 

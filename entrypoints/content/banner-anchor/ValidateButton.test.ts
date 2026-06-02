@@ -21,11 +21,29 @@ function buildBottomBar(saveText = '저장') {
   return { wrap, listBtn, saveBtn };
 }
 
+// 배너 이미지 셀 모사: imageName 텍스트 input과 미리보기 <img>가 같은 <td>에 든다.
+// hasImage=true면 src 있는 미리보기 img를, false면 img 없이 input만 둔다(미설정 상태).
+function buildImageCell(index: number, hasImage: boolean) {
+  const td = document.createElement('td');
+  const imageNameInput = document.createElement('input');
+  imageNameInput.name = `accounts.${index}.banners.0.imageInfo.imageName`;
+  imageNameInput.value = ''; // 실제 어드민도 이미지 유무와 무관하게 비어 있음.
+  td.append(imageNameInput);
+  if (hasImage) {
+    const img = document.createElement('img');
+    img.setAttribute('alt', 'banner_image');
+    img.setAttribute('src', '//cdn.example.com/banner.png');
+    td.append(img);
+  }
+  return td;
+}
+
 function buildAccountSection(opts: {
   index: number;
   width?: string;
   height?: string;
   useY?: boolean;
+  hasImage?: boolean;
 }) {
   const wrap = document.createElement('div');
   const top = document.createElement('div');
@@ -46,7 +64,7 @@ function buildAccountSection(opts: {
   const heightInput = document.createElement('input');
   heightInput.name = `accounts.${opts.index}.height`;
   heightInput.value = opts.height ?? '';
-  wrap.append(top, widthInput, heightInput);
+  wrap.append(top, widthInput, heightInput, buildImageCell(opts.index, opts.hasImage ?? false));
   return wrap;
 }
 
@@ -149,8 +167,42 @@ describe('ValidateButton — 검증 동작 (main mode)', () => {
   });
 
   it('통과 시 ✅ 통과 토스트를 띄운다', async () => {
-    document.body.append(buildAccountSection({ index: 0, width: '16', height: '9', useY: true }));
+    document.body.append(buildAccountSection({ index: 0, width: '16', height: '9', useY: true, hasImage: true }));
     document.body.append(buildAccountSection({ index: 1, useY: false }));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({ mode: 'main' });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/검증 통과/);
+    });
+  });
+
+  it('사용(Y) 구좌에 이미지가 없으면 경고를 띄운다', async () => {
+    document.body.append(buildAccountSection({ index: 0, width: '16', height: '9', useY: true, hasImage: false }));
+    document.body.append(buildAccountSection({ index: 1, useY: false }));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({ mode: 'main' });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/이미지가 설정되지 않/);
+    });
+  });
+
+  it('미사용(N) 구좌는 이미지가 없어도 경고하지 않는다', async () => {
+    document.body.append(buildAccountSection({ index: 0, width: '16', height: '9', useY: true, hasImage: true }));
+    document.body.append(buildAccountSection({ index: 1, useY: false, hasImage: false }));
     const { wrap } = buildBottomBar();
     document.body.append(wrap);
 
@@ -184,7 +236,7 @@ describe('ValidateButton — 검증 동작 (main mode)', () => {
   });
 
   it('연속 검증 시 이전 토스트를 정리하고 새 결과로 교체한다', async () => {
-    document.body.append(buildAccountSection({ index: 0, useY: false }));
+    document.body.append(buildAccountSection({ index: 0, useY: false, hasImage: true }));
     const { wrap } = buildBottomBar();
     document.body.append(wrap);
 
@@ -346,6 +398,92 @@ describe('ValidateButton — 검증 동작 (strip mode)', () => {
     accountInput.name = 'accounts.0.accountName';
     accountInput.value = 'c_d1_p_t_병부장';
     document.body.append(accountInput);
+    document.body.append(buildImageCell(0, true));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({
+      mode: 'strip',
+      loadSections: () => Promise.resolve(SECTIONS),
+    });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/검증 통과/);
+    });
+  });
+
+  it('세로(높이)가 84/104가 아니면 경고를 띄운다', async () => {
+    document.body.append(buildAccountSection({ index: 0, width: '16', height: '90' }));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({
+      mode: 'strip',
+      loadSections: () => Promise.resolve(SECTIONS),
+    });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/84 또는 104/);
+    });
+  });
+
+  it('진열 ID는 유효하지만 배너 이미지가 없으면 경고를 띄운다', async () => {
+    const accountInput = document.createElement('input');
+    accountInput.name = 'accounts.0.accountName';
+    accountInput.value = 'c_d1_p_t_병부장';
+    document.body.append(accountInput);
+    document.body.append(buildImageCell(0, false));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({
+      mode: 'strip',
+      loadSections: () => Promise.resolve(SECTIONS),
+    });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/이미지가 설정되지 않/);
+    });
+  });
+
+  it('진열 ID가 비어 있으면(미설정 구좌) 이미지 검증을 건너뛴다', async () => {
+    const accountInput = document.createElement('input');
+    accountInput.name = 'accounts.0.accountName';
+    accountInput.value = '';
+    document.body.append(accountInput);
+    document.body.append(buildImageCell(0, false));
+    const { wrap } = buildBottomBar();
+    document.body.append(wrap);
+
+    validator = new ValidateButton({
+      mode: 'strip',
+      loadSections: () => Promise.resolve(SECTIONS),
+    });
+    validator.start(document);
+
+    document.querySelector<HTMLButtonElement>('.ext-shopby-validate-btn')!.click();
+
+    await vi.waitFor(() => {
+      const toast = document.querySelector('.ext-shopby-validate-toast');
+      expect(toast?.shadowRoot?.textContent).toMatch(/검증 통과/);
+    });
+  });
+
+  it('세로(높이) 84/104는 통과', async () => {
+    document.body.append(buildAccountSection({ index: 0, width: '16', height: '84' }));
+    document.body.append(buildAccountSection({ index: 1, width: '16', height: '104' }));
     const { wrap } = buildBottomBar();
     document.body.append(wrap);
 

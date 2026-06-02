@@ -50,6 +50,39 @@ export function validateStripAccountName(
   return null;
 }
 
+// 띠배너 세로(높이): 앱 레이아웃 규격상 84 또는 104 두 값만 허용.
+// 가로(16)는 시스템 고정이라 검증 대상이 아니고, 비율 설정 자체가 무시되므로
+// 실제로 다르게 표시되는 건 세로뿐이다. 강제는 불가능해도 다른 값이면 의도치 않은
+// 표시가 되므로 경고로 잡는다. 비어 있으면 검증 안 함(기본값/미설정 구좌).
+const STRIP_ALLOWED_HEIGHTS: readonly number[] = [84, 104];
+
+export function validateStripHeight(accountIndex: number, heightRaw: string): ValidationIssue | null {
+  const height = heightRaw.trim();
+  if (!height) return null;
+
+  const h = Number(height);
+  if (!Number.isFinite(h) || !STRIP_ALLOWED_HEIGHTS.includes(h)) {
+    return {
+      field: `구좌 ${accountIndex + 1} 세로(높이)`,
+      reason: `세로는 ${STRIP_ALLOWED_HEIGHTS.join(' 또는 ')}만 허용됩니다 (입력값 ${height}).`,
+    };
+  }
+
+  return null;
+}
+
+// 배너 이미지 미설정 검사. 이미지 업로드는 DOM 위젯이라 값이 input에 담기지 않아
+// (imageName 텍스트 input은 이미지가 있어도 비어 있음), 호출부(ValidateButton)에서
+// 미리보기 <img> 존재 여부를 boolean으로 판정해 넘긴다. 「사용 중인 구좌」인데
+// 이미지가 없을 때만 경고하도록 호출부에서 게이팅한다.
+export function validateBannerImage(accountIndex: number, hasImage: boolean): ValidationIssue | null {
+  if (hasImage) return null;
+  return {
+    field: `구좌 ${accountIndex + 1} 배너 이미지`,
+    reason: '배너 이미지가 설정되지 않았습니다. 이미지를 업로드한 뒤 저장하세요.',
+  };
+}
+
 // 메인배너 사이즈: 16:9 또는 3:2 비율인지.
 // 둘 다 비어 있으면 검증 안 함(사용 안 함 구좌). 한쪽만 비어 있으면 에러.
 export function validateMainSize(

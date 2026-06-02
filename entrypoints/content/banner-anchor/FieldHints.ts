@@ -36,19 +36,20 @@ function findAccountToggleHeader(root: ParentNode): Element[] {
 }
 
 // shopby-display.md 3-4 「띠 배너 설정」.
-// 띠배너만의 핵심 규칙: 구좌명에는 진열 ID, 비율은 무시.
+// 띠배너만의 핵심 규칙: 구좌명에는 진열 ID, 비율은 무시(가로 16 고정·세로만 84/104).
 export const STRIP_BANNER_HINTS: readonly FieldHintSpec[] = [
   {
     find: 'input[name^="accounts."][name$=".accountName"]',
     anchorSelector: '.input-container',
     tone: 'warn',
-    message: '구좌명이 아니라 「연결할 진열 ID」를 그대로 입력하세요. (자유 입력 금지)',
+    message:
+      '구좌명이 아니라 「연결할 진열 ID」를 그대로 입력하세요. (자유 입력 금지)',
   },
   {
     find: 'input[name^="accounts."][name$=".width"]',
     anchorSelector: '.flex-wrap',
     tone: 'info',
-    message: '띠배너는 이미지 비율 설정이 무시됩니다 (16:9 / 3:2 입력해도 적용 안 됨).',
+    message: '띠배너는 가로 16 고정 · 세로만 84 또는 104로 입력하세요.',
   },
   {
     find: 'input[name^="accounts."][name$=".banners.0.bannerName"]',
@@ -71,19 +72,22 @@ export const MAIN_BANNER_HINTS: readonly FieldHintSpec[] = [
   {
     find: findAccountToggleHeader,
     tone: 'warn',
-    message: '16:9 / 3:2 두 구좌 중 「하나만」 「사용」으로, 나머지는 「사용 안 함」으로 설정하세요.',
+    message:
+      '16:9 / 3:2 두 구좌 중 「하나만」 「사용」으로, 나머지는 「사용 안 함」으로 설정하세요.',
   },
   {
     find: 'input[name^="accounts."][name$=".accountName"]',
     anchorSelector: '.input-container',
     tone: 'info',
-    message: 'MD가 자유롭게 사용하는 식별 필드입니다 — 앱에는 노출되지 않습니다.',
+    message:
+      'MD가 자유롭게 사용하는 식별 필드입니다 — 앱에는 노출되지 않습니다.',
   },
   {
     find: 'input[name^="accounts."][name$=".width"]',
     anchorSelector: '.flex-wrap',
     tone: 'warn',
-    message: '사이즈는 16:9 또는 3:2 만 입력하세요. (그 외 입력 시 기본값 16:9 적용)',
+    message:
+      '사이즈는 16:9 또는 3:2 만 입력하세요. (그 외 입력 시 기본값 16:9 적용)',
   },
   {
     find: 'input[name^="accounts."][name$=".banners.0.bannerName"]',

@@ -1,41 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
-import {
-  parseColorSpec,
-  previewTitle,
-  serializeChips,
-  type ColorChip,
-  type ColorRule,
-} from '../../../lib/display-id';
+import { previewTitle, type ColorRule } from '../../../lib/display-id';
+import { deriveTitle, type TitleState } from './display-state';
 import { WordChips } from './WordChips';
 
-export type TitleResult = { title: string; color: string; hasError: boolean };
-
 type TitleEditorProps = {
-  onChange: (result: TitleResult) => void;
+  value: TitleState;
+  onChange: (next: TitleState) => void;
 };
 
-export function TitleEditor({ onChange }: TitleEditorProps) {
-  const [title, setTitle] = useState('');
-  const [chips, setChips] = useState<ColorChip[]>([]);
-  const [previewName, setPreviewName] = useState('지성현');
+export function TitleEditor({ value, onChange }: TitleEditorProps) {
+  const { rules, errors, warnings } = deriveTitle(value);
+  const preview = previewTitle(value.title, value.previewName);
 
-  // 저장값은 지금처럼 "단어#HEX, …" 문자열. 칩에서 직렬화해 만든다.
-  const colorSpec = useMemo(() => serializeChips(chips), [chips]);
-
-  // 프리뷰·경고는 기존 파서를 그대로 재사용한다(진열명에 없는 단어 = 경고 등).
-  const colorResult = useMemo(() => parseColorSpec(colorSpec, title), [colorSpec, title]);
-  const rules = colorResult.ok ? colorResult.value : [];
-  const issues = colorResult.ok ? [] : colorResult.issues;
-  const errors = issues.filter((issue) => issue.severity === 'error');
-  const warnings = issues.filter((issue) => issue.severity === 'warn');
-  const preview = previewTitle(title, previewName);
-  const hasError = errors.length > 0;
-
-  useEffect(() => {
-    // 진열 상세설명(sectionExplain) 필드에는 색상 규칙 원문을 그대로 채운다.
-    onChange({ title, color: colorSpec, hasError });
-  }, [title, colorSpec, hasError, onChange]);
+  function patch(partial: Partial<TitleState>) {
+    onChange({ ...value, ...partial });
+  }
 
   return (
     <section className="title-editor" aria-labelledby="title-editor-title">
@@ -56,8 +35,8 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <input
             aria-describedby="title-editor-name-hint"
             id="title-editor-name"
-            onChange={(event) => setTitle(event.target.value)}
-            value={title}
+            onChange={(event) => patch({ title: event.target.value })}
+            value={value.title}
           />
         </div>
 
@@ -66,7 +45,7 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <small className="field-hint">
             단어를 추가한 뒤 옆의 색 동그라미를 눌러 색을 고르세요. 진열명에 있는 단어만 색칠됩니다.
           </small>
-          <WordChips chips={chips} onChange={setChips} />
+          <WordChips chips={value.chips} onChange={(chips) => patch({ chips })} />
         </div>
 
         <div className="field field--wide">
@@ -77,8 +56,8 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <input
             aria-describedby="title-editor-preview-name-hint"
             id="title-editor-preview-name"
-            onChange={(event) => setPreviewName(event.target.value)}
-            value={previewName}
+            onChange={(event) => patch({ previewName: event.target.value })}
+            value={value.previewName}
           />
         </div>
       </div>
@@ -88,12 +67,12 @@ export function TitleEditor({ onChange }: TitleEditorProps) {
           <span>프리뷰</span>
           <ValidationBadge errors={errors.length} warnings={warnings.length} />
         </div>
-        <p aria-label="색상 프리뷰">{renderColoredPreview(preview, rules, previewName)}</p>
+        <p aria-label="색상 프리뷰">{renderColoredPreview(preview, rules, value.previewName)}</p>
       </div>
 
-      {issues.length > 0 && (
+      {(errors.length > 0 || warnings.length > 0) && (
         <ul className="issue-list" aria-label="진열명 검증 결과">
-          {issues.map((issue) => (
+          {[...errors, ...warnings].map((issue) => (
             <li data-severity={issue.severity} key={`${issue.field}-${issue.message}`}>
               {issue.message}
             </li>

@@ -385,6 +385,41 @@ textarea:focus-visible {
   opacity: 0.45;
 }
 
+.load-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.secondary-button {
+  min-height: 34px;
+  border: 1px solid #d0d5dd;
+  border-radius: 7px;
+  padding: 7px 11px;
+  color: #344054;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  transition:
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #f2f4f7;
+}
+
+.secondary-button:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.load-bar__status {
+  color: #667085;
+  font-size: 12px;
+}
+
 .fill-report {
   display: grid;
   gap: 6px;

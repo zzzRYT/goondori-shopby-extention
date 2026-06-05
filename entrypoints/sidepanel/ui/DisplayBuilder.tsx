@@ -1,76 +1,35 @@
-import { useEffect, useMemo, useState } from 'react';
 import {
-  buildDisplayId,
-  parseDisplayId,
-  type Display,
-  type DisplaySpec,
-  type Env,
-  type Method,
-  type UserTypeChar,
-} from '../../../lib/display-id';
+  deriveDisplay,
+  restoreBuilder,
+  type BuilderState,
+  type DisplayType,
+} from './display-state';
+import type { Env, Method } from '../../../lib/display-id';
 import { BrandPicker } from './BrandPicker';
 import { UserTypeChips } from './UserTypeChips';
 
-type DisplayType = DisplaySpec['type'];
-
-export type DisplayResult = { displayId: string; hasError: boolean };
-
 type DisplayBuilderProps = {
-  onChange: (result: DisplayResult) => void;
+  value: BuilderState;
+  onChange: (next: BuilderState) => void;
 };
 
-export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
-  const [env, setEnv] = useState<Env>('c');
-  const [onHome, setOnHome] = useState(true);
-  const [order, setOrder] = useState(1);
-  const [method, setMethod] = useState<Method>('p');
-  const [type, setType] = useState<DisplayType>('t');
-  const [userTypes, setUserTypes] = useState<UserTypeChar[]>([]);
-  const [brandNo, setBrandNo] = useState('');
-  const [label, setLabel] = useState('베스트');
-  const [sourceId, setSourceId] = useState('');
+export function DisplayBuilder({ value, onChange }: DisplayBuilderProps) {
+  const { displayId, errors, warnings } = deriveDisplay(value);
 
-  // 전시 토큰: 홈 전시면 순서를 가진 d{n}, 비노출이면 nd.
-  const display = useMemo<Display>(
-    () => (onHome ? { onHome: true, order } : { onHome: false }),
-    [onHome, order],
-  );
+  function patch(partial: Partial<BuilderState>) {
+    onChange({ ...value, ...partial });
+  }
 
-  const spec = useMemo<DisplaySpec>(() => {
-    if (type === 'b') return { env, display, method, type, brandNo };
-    if (type === 'n') return { env, display, method, type, label };
-    return { env, display, method, type, userTypes };
-  }, [brandNo, display, env, label, method, type, userTypes]);
+  function setEnv(env: Env) {
+    patch({ env });
+  }
 
-  const preview = buildDisplayId(spec);
-  const validation = parseDisplayId(preview);
-  const errorIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'error');
-  const warnIssues = validation.ok ? [] : validation.issues.filter((issue) => issue.severity === 'warn');
-  const hasError = errorIssues.length > 0;
+  function setMethod(method: Method) {
+    patch({ method });
+  }
 
-  useEffect(() => {
-    onChange({ displayId: preview, hasError });
-  }, [preview, hasError, onChange]);
-
-  function restoreFromId(nextSourceId: string) {
-    setSourceId(nextSourceId);
-
-    const parsed = parseDisplayId(nextSourceId);
-    if (!parsed.ok) return;
-
-    setEnv(parsed.value.env);
-    setOnHome(parsed.value.display.onHome);
-    if (parsed.value.display.onHome) setOrder(parsed.value.display.order);
-    setMethod(parsed.value.method);
-    setType(parsed.value.type);
-
-    if (parsed.value.type === 't') {
-      setUserTypes(parsed.value.userTypes);
-    } else if (parsed.value.type === 'b') {
-      setBrandNo(parsed.value.brandNo);
-    } else {
-      setLabel(parsed.value.label);
-    }
+  function setType(type: DisplayType) {
+    patch({ type });
   }
 
   return (
@@ -85,7 +44,10 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
       <div className="form-grid">
         <label className="field field--wide">
           <span>기존 진열 ID</span>
-          <input onChange={(event) => restoreFromId(event.target.value)} value={sourceId} />
+          <input
+            onChange={(event) => onChange(restoreBuilder(value, event.target.value))}
+            value={value.sourceId}
+          />
         </label>
 
         <fieldset className="field-group">
@@ -93,7 +55,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           <div className="segmented">
             <button
               className="segmented__button"
-              data-active={env === 'c'}
+              data-active={value.env === 'c'}
               onClick={() => setEnv('c')}
               type="button"
             >
@@ -101,7 +63,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
             </button>
             <button
               className="segmented__button"
-              data-active={env === 'ct'}
+              data-active={value.env === 'ct'}
               onClick={() => setEnv('ct')}
               type="button"
             >
@@ -114,19 +76,19 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           <legend>홈 전시</legend>
           <div className="segmented">
             <button
-              aria-pressed={onHome}
+              aria-pressed={value.onHome}
               className="segmented__button"
-              data-active={onHome}
-              onClick={() => setOnHome(true)}
+              data-active={value.onHome}
+              onClick={() => patch({ onHome: true })}
               type="button"
             >
               전시 d
             </button>
             <button
-              aria-pressed={!onHome}
+              aria-pressed={!value.onHome}
               className="segmented__button"
-              data-active={!onHome}
-              onClick={() => setOnHome(false)}
+              data-active={!value.onHome}
+              onClick={() => patch({ onHome: false })}
               type="button"
             >
               비노출 nd
@@ -134,14 +96,14 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           </div>
         </fieldset>
 
-        {onHome ? (
+        {value.onHome ? (
           <label className="field">
             <span>순서</span>
             <input
               min={1}
-              onChange={(event) => setOrder(Number(event.target.value))}
+              onChange={(event) => patch({ order: Number(event.target.value) })}
               type="number"
-              value={order}
+              value={value.order}
             />
           </label>
         ) : (
@@ -155,7 +117,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           <div className="segmented">
             <button
               className="segmented__button"
-              data-active={method === 'p'}
+              data-active={value.method === 'p'}
               onClick={() => setMethod('p')}
               type="button"
             >
@@ -163,7 +125,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
             </button>
             <button
               className="segmented__button"
-              data-active={method === 's'}
+              data-active={value.method === 's'}
               onClick={() => setMethod('s')}
               type="button"
             >
@@ -177,7 +139,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           <div className="segmented segmented--three">
             <button
               className="segmented__button"
-              data-active={type === 't'}
+              data-active={value.type === 't'}
               onClick={() => setType('t')}
               type="button"
             >
@@ -185,7 +147,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
             </button>
             <button
               className="segmented__button"
-              data-active={type === 'b'}
+              data-active={value.type === 'b'}
               onClick={() => setType('b')}
               type="button"
             >
@@ -193,7 +155,7 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
             </button>
             <button
               className="segmented__button"
-              data-active={type === 'n'}
+              data-active={value.type === 'n'}
               onClick={() => setType('n')}
               type="button"
             >
@@ -202,24 +164,24 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
           </div>
         </fieldset>
 
-        {type === 't' && (
+        {value.type === 't' && (
           <fieldset className="field-group field-group--wide">
             <legend>사용자유형</legend>
-            <UserTypeChips selected={userTypes} onChange={setUserTypes} />
+            <UserTypeChips selected={value.userTypes} onChange={(userTypes) => patch({ userTypes })} />
           </fieldset>
         )}
 
-        {type === 'b' && (
+        {value.type === 'b' && (
           <div className="field field--wide">
             <span>브랜드</span>
-            <BrandPicker onChange={setBrandNo} value={brandNo} />
+            <BrandPicker onChange={(brandNo) => patch({ brandNo })} value={value.brandNo} />
           </div>
         )}
 
-        {type === 'n' && (
+        {value.type === 'n' && (
           <label className="field field--wide">
             <span>라벨</span>
-            <input onChange={(event) => setLabel(event.target.value)} value={label} />
+            <input onChange={(event) => patch({ label: event.target.value })} value={value.label} />
           </label>
         )}
       </div>
@@ -227,14 +189,14 @@ export function DisplayBuilder({ onChange }: DisplayBuilderProps) {
       <div className="preview-bar">
         <div>
           <span className="preview-bar__label">미리보기</span>
-          <code>{preview}</code>
+          <code>{displayId}</code>
         </div>
-        <ValidationBadge errors={errorIssues.length} warnings={warnIssues.length} />
+        <ValidationBadge errors={errors.length} warnings={warnings.length} />
       </div>
 
-      {(errorIssues.length > 0 || warnIssues.length > 0) && (
+      {(errors.length > 0 || warnings.length > 0) && (
         <ul className="issue-list" aria-label="검증 결과">
-          {[...errorIssues, ...warnIssues].map((issue) => (
+          {[...errors, ...warnings].map((issue) => (
             <li data-severity={issue.severity} key={`${issue.field}-${issue.message}`}>
               {issue.message}
             </li>

@@ -111,6 +111,7 @@
 - 좌측 브랜드 목록(버튼 204개)에 이름+번호 존재 → API 없어도 `AdminPageBrandSource`(HTML 파싱) 가능.
 - 단, 더 안정적인 API가 있는지 Network 탭 확인 필요(미답).
 - 브랜드 수정 페이지 "추가 설명"(extraInfo) 입력란: `input[name="brandInfo.extraInfo"]` (2026-06 실제 DOM 확인 — textarea가 아니라 input, `.input-field` 래퍼 안에 있음). 군돌이 토큰 가이드 inject 대상.
+- 브랜드가 많으면 좌측 트리 하단에 **TOAST UI 페이지네이션**(`.tui-pagination`, 트리의 형제)이 붙어 페이지 단위로 나뉜다(2026-06 확인). 현재 페이지 `strong.tui-page-btn.tui-is-selected`(텍스트=번호), 다음 `a.tui-page-btn.tui-next`(마지막 페이지면 `<span ... tui-is-disabled>`로 바뀜). `openBrandEditor`는 사이드패널 카드 클릭 시 1페이지부터 끝까지 넘기며 row를 탐색한다.
 
 ## 브랜드 소스 (Stage 5 분기) — 미확정
 

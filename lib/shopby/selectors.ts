@@ -56,6 +56,17 @@ export const BRAND_TREE_CONTAINER_SELECTOR = '[class*="TreeV2_tree__"]';
 export const BRAND_TREE_ITEM_LABEL_SELECTOR = '[class*="TreeV2_item-label__"]';
 export const BRAND_TREE_CONTENT_SELECTOR = '[class*="TreeV2_content__"]';
 
+// 브랜드가 많으면 트리 하단에 TOAST UI 페이지네이션(.tui-pagination)이 붙고
+// 브랜드가 페이지 단위로 나뉘어 렌더된다(트리의 형제 요소, 2026-06 확인).
+// 현재 페이지는 strong.tui-is-selected(텍스트=번호), 다음 페이지는 a.tui-next.
+// 마지막 페이지에선 next/last가 <span ... tui-is-disabled>로 바뀌어 a 셀렉터에서 빠진다.
+export const BRAND_PAGINATION_SELECTOR = '.tui-pagination';
+export const BRAND_PAGE_SELECTED_SELECTOR = '.tui-page-btn.tui-is-selected';
+export const BRAND_PAGE_NEXT_SELECTOR = 'a.tui-page-btn.tui-next';
+export const BRAND_PAGE_FIRST_SELECTOR = 'a.tui-page-btn.tui-first';
+// 숫자 페이지 버튼. next/prev/first/last 컨트롤도 같은 클래스라 텍스트가 숫자인 것만 쓴다.
+export const BRAND_PAGE_BTN_SELECTOR = 'a.tui-page-btn';
+
 // 전시카테고리 편집 페이지. name 속성이 없어 CSS 모듈 클래스 prefix(substring) 매칭.
 // suffix(__0-V7R 등)는 빌드 해시라 변동 가능.
 export const DISPLAY_CATEGORY_CODE_INPUT_SELECTOR =

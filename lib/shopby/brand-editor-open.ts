@@ -3,6 +3,11 @@ import type {
   OpenBrandEditorResult,
 } from '../messaging';
 import {
+  BRAND_PAGE_BTN_SELECTOR,
+  BRAND_PAGE_FIRST_SELECTOR,
+  BRAND_PAGE_NEXT_SELECTOR,
+  BRAND_PAGE_SELECTED_SELECTOR,
+  BRAND_PAGINATION_SELECTOR,
   BRAND_TREE_CONTAINER_SELECTOR,
   BRAND_TREE_CONTENT_SELECTOR,
   BRAND_TREE_ITEM_LABEL_SELECTOR,
@@ -55,6 +60,8 @@ type OpenOptions = {
   maxScrollSteps?: number;
   scrollStepPx?: number;
   waitMs?: number;
+  // 페이지네이션을 끝까지 넘기다 무한루프가 되지 않도록 방문 페이지 상한.
+  maxPages?: number;
   // 호스트 판별을 테스트에서 주입할 수 있게 분리.
   // 기본은 doc.location.hostname 기반 isShopbyAdminHost.
   hostname?: string;
@@ -64,6 +71,7 @@ const DEFAULT_OPTIONS: Omit<Required<OpenOptions>, 'hostname'> = {
   maxScrollSteps: 30,
   scrollStepPx: 240,
   waitMs: 50,
+  maxPages: 50,
 };
 
 function sleep(ms: number): Promise<void> {
@@ -100,6 +108,96 @@ async function findWithScroll(
   }
 
   return findBrandRow(doc, request);
+}
+
+// tui-pagination에서 현재 선택된 페이지 번호를 읽는다. 숫자가 아니면 null.
+export function readSelectedPage(pager: Element): number | null {
+  const selected = pager.querySelector(BRAND_PAGE_SELECTED_SELECTOR);
+  const value = Number(selected?.textContent?.trim());
+  return Number.isInteger(value) && value > 0 ? value : null;
+}
+
+// 다음 페이지로 이동할 버튼을 고른다.
+// 1순위: "현재+1" 숫자 버튼 — 정확히 한 페이지씩 이동해 그룹 점프로 페이지를 건너뛸 위험이 없다.
+// 2순위: tui-next 버튼 — 숫자 윈도우에 다음 페이지가 안 보일 때 사용. 마지막 페이지면
+//        next가 <span ... tui-is-disabled>라 a 셀렉터에서 빠지므로 자연히 null이 된다.
+export function findNextPageControl(
+  pager: Element,
+  current: number | null,
+): HTMLElement | null {
+  if (current != null) {
+    const numbered = [
+      ...pager.querySelectorAll<HTMLElement>(BRAND_PAGE_BTN_SELECTOR),
+    ].find((btn) => Number(btn.textContent?.trim()) === current + 1);
+    if (numbered) return numbered;
+  }
+
+  const next = pager.querySelector<HTMLElement>(BRAND_PAGE_NEXT_SELECTOR);
+  if (next && !next.classList.contains('tui-is-disabled')) return next;
+
+  return null;
+}
+
+// 페이지 전환은 비동기 재렌더라 클릭 직후엔 이전 페이지가 보인다.
+// 선택된 페이지 번호가 바뀔 때까지 짧게 폴링한다.
+async function waitForPageChange(
+  doc: Document,
+  prevPage: number | null,
+  opts: typeof DEFAULT_OPTIONS,
+): Promise<boolean> {
+  for (let step = 0; step < opts.maxScrollSteps; step += 1) {
+    await sleep(opts.waitMs);
+    const pager = doc.querySelector(BRAND_PAGINATION_SELECTOR);
+    if (!pager) continue;
+    const now = readSelectedPage(pager);
+    if (now != null && now !== prevPage) return true;
+  }
+  return false;
+}
+
+// 이미 첫 페이지가 아니면 첫 페이지로 되돌려 1→2→3 순서로 빠짐없이 스캔할 수 있게 한다.
+// 첫 페이지면 first 컨트롤이 비활성(span)이라 셀렉터에서 빠져 no-op.
+async function gotoFirstPage(
+  doc: Document,
+  opts: typeof DEFAULT_OPTIONS,
+): Promise<void> {
+  const pager = doc.querySelector(BRAND_PAGINATION_SELECTOR);
+  if (!pager) return;
+
+  const first = pager.querySelector<HTMLElement>(BRAND_PAGE_FIRST_SELECTOR);
+  if (!first || first.classList.contains('tui-is-disabled')) return;
+
+  const prev = readSelectedPage(pager);
+  first.click();
+  await waitForPageChange(doc, prev, opts);
+}
+
+// 페이지네이션을 1페이지부터 끝까지 넘기며 각 페이지에서 브랜드 row를 탐색한다.
+// 페이저가 없으면(브랜드가 적어 한 페이지) 단일 페이지 탐색과 동일하게 동작한다.
+async function findAcrossPages(
+  doc: Document,
+  request: OpenBrandEditorRequest,
+  opts: typeof DEFAULT_OPTIONS,
+): Promise<HTMLElement | null> {
+  await gotoFirstPage(doc, opts);
+
+  for (let visited = 0; visited < opts.maxPages; visited += 1) {
+    const hit = await findWithScroll(doc, request, opts);
+    if (hit) return hit;
+
+    const pager = doc.querySelector(BRAND_PAGINATION_SELECTOR);
+    if (!pager) return null;
+
+    const current = readSelectedPage(pager);
+    const control = findNextPageControl(pager, current);
+    if (!control) return null;
+
+    control.click();
+    const moved = await waitForPageChange(doc, current, opts);
+    if (!moved) return null;
+  }
+
+  return null;
 }
 
 // extraInfo input이 나타날 때까지 짧게 대기 후, 편집 섹션("브랜드 기본 설정")이
@@ -139,7 +237,7 @@ export async function openBrandEditor(
   }
 
   const opts = { ...DEFAULT_OPTIONS, ...options };
-  const label = await findWithScroll(doc, request, opts);
+  const label = await findAcrossPages(doc, request, opts);
   if (!label) {
     return {
       status: 'not-found',

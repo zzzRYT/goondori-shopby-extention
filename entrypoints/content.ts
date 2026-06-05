@@ -11,6 +11,9 @@ import {
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
 
+// 진열 값 읽기(readCurrentDisplay)는 background가 scripting.executeScript로 전 프레임을
+// 직접 훑는다(docs/recon.md: 폼이 iframe에 있어 메시지 브로드캐스트 레이스로 누락됨). 여기선 처리하지 않는다.
+
 export default defineContentScript({
   // 정찰(docs/recon.md): 어드민 폼은 *.shopby.co.kr 도메인에서 렌더된다.
   // 부모(service.shopby.co.kr)와 iframe(enterprise-remote.shopby.co.kr) 양쪽에 주입해야
@@ -20,7 +23,6 @@ export default defineContentScript({
   allFrames: true,
   main() {
     onMessage('fillDisplay', (message) => fillDisplayFields(message.data));
-    onMessage('readCurrentDisplay', () => readByMap(DISPLAY_FIELD_MAP));
     onMessage('openBrandEditor', (message) =>
       openBrandEditor(document, message.data),
     );
@@ -62,18 +64,6 @@ function adminHostError(fields: FillField[]): FillResult {
   };
 }
 
-function readByMap(fieldMap: FieldMap): Record<string, string> {
-  if (!isShopbyAdminHost(location.hostname)) return {};
-
-  return Object.fromEntries(
-    Object.entries(fieldMap).flatMap(([key, selector]) => {
-      const element = document.querySelector(selector);
-      if (!isReadableElement(element)) return [];
-      return [[key, element.value]];
-    }),
-  );
-}
-
 function highlightResult(fieldMap: FieldMap, result: FillResult) {
   for (const item of result.filled) {
     const element = document.querySelector(fieldMap[item.key]);
@@ -102,14 +92,4 @@ function flashElement(element: HTMLElement, color: string) {
 
 function isShopbyAdminHost(hostname: string) {
   return hostname.endsWith('.shopby.co.kr') || hostname.endsWith('.e-ncp.com');
-}
-
-function isReadableElement(
-  element: Element | null,
-): element is HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement {
-  return (
-    element instanceof HTMLInputElement ||
-    element instanceof HTMLTextAreaElement ||
-    element instanceof HTMLSelectElement
-  );
 }

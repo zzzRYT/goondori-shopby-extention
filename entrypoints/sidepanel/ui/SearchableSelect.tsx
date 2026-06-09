@@ -120,28 +120,42 @@ export function SearchableSelect({
 
   return (
     <div className="combobox" data-open={open}>
-      <input
-        aria-activedescendant={activeOptionId}
-        aria-autocomplete="list"
-        aria-controls={listId}
-        aria-expanded={open}
-        aria-label={label}
-        autoComplete="off"
-        className="combobox__input"
-        onBlur={() => setOpen(false)}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setOpen(true);
-          setActiveIndex(0);
-        }}
-        onFocus={openList}
-        onKeyDown={handleKeyDown}
-        placeholder={options.length === 0 ? emptyLabel : placeholder}
-        ref={inputRef}
-        role="combobox"
-        type="text"
-        value={inputValue}
-      />
+      <div className="combobox__field">
+        <input
+          aria-activedescendant={activeOptionId}
+          aria-autocomplete="list"
+          aria-controls={listId}
+          aria-expanded={open}
+          aria-label={label}
+          autoComplete="off"
+          className="combobox__input"
+          onBlur={() => setOpen(false)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+            setActiveIndex(0);
+          }}
+          onFocus={openList}
+          onKeyDown={handleKeyDown}
+          placeholder={options.length === 0 ? emptyLabel : placeholder}
+          ref={inputRef}
+          role="combobox"
+          type="text"
+          value={inputValue}
+        />
+        {/* 목록을 다시 불러온다. 새로 생성한 항목을 반영할 때 사용.
+            input이 포커스 중이어도 blur로 목록이 닫히지 않도록 onMouseDown에서 기본 동작을 막는다. */}
+        <button
+          aria-label={`${label} 새로고침`}
+          className="combobox__refresh"
+          onClick={onReload}
+          onMouseDown={(event) => event.preventDefault()}
+          title="새로고침"
+          type="button"
+        >
+          ↻
+        </button>
+      </div>
 
       {open && (
         <ul className="combobox__list" id={listId} role="listbox">

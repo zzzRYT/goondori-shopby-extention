@@ -78,6 +78,13 @@ describe('SearchableSelect', () => {
     expect(screen.getByText(/불러오는 중/)).toBeTruthy();
   });
 
+  it('준비 상태에서 새로고침 버튼을 보여주고 클릭 시 onReload', () => {
+    const { onReload } = setup();
+
+    fireEvent.click(screen.getByRole('button', { name: '진열 새로고침' }));
+    expect(onReload).toHaveBeenCalledOnce();
+  });
+
   it('에러 상태에서 메시지와 다시 시도 버튼을 보여주고 클릭 시 onReload', () => {
     const { onReload } = setup({ status: 'error', error: '연결 실패' });
 

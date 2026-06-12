@@ -49,9 +49,10 @@ export async function runScan(
   signal: { cancelled: boolean } = { cancelled: false },
 ): Promise<ScanSummary> {
   callbacks.onPhase?.('collecting');
-  const list = await ports.collectList();
+  // 수집 실패(메시징 거부 포함)는 예외 전파 대신 terminal phase로 일관되게 알린다 — scanOne과 같은 원칙.
+  const list = await ports.collectList().catch(() => null);
 
-  if (list.status === 'no-grid') {
+  if (list == null || list.status === 'no-grid') {
     callbacks.onPhase?.('collect-failed');
     return { phase: 'collect-failed', results: [], totalCount: null, countMismatch: false };
   }

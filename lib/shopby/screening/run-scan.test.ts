@@ -109,6 +109,19 @@ describe('runScan', () => {
     expect(summary.phase).toBe('collect-failed');
   });
 
+  it('collectList가 거부돼도 예외 대신 collect-failed로 끝난다', async () => {
+    const ports = makePorts({
+      collectList: vi.fn(async () => {
+        throw new Error('메시징 실패');
+      }),
+    });
+
+    const summary = await runScan(ports, RULES);
+
+    expect(summary.phase).toBe('collect-failed');
+    expect(summary.results).toEqual([]);
+  });
+
   it('count-mismatch는 요약에 전파된다', async () => {
     const ports = makePorts({ collectList: vi.fn(async () => list(['1'], 'count-mismatch')) });
 

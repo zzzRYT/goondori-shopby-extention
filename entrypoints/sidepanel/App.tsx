@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { BrandShowcase } from './ui/BrandShowcase';
 import { CategoryShowcase } from './ui/CategoryShowcase';
 import { DisplayWorkspace } from './ui/DisplayWorkspace';
+import { ScreeningWorkspace } from './ui/ScreeningWorkspace';
 import { Tabs, type TabItem } from './ui/Tabs';
 
 const TABS: TabItem[] = [
   { id: 'display', label: '진열' },
   { id: 'brand', label: '브랜드' },
   { id: 'category', label: '전시카테고리' },
+  { id: 'screening', label: '심사' },
 ];
 
 export default function App() {
@@ -28,6 +30,7 @@ export default function App() {
         {activeTab === 'display' && <DisplayWorkspace />}
         {activeTab === 'brand' && <BrandShowcase />}
         {activeTab === 'category' && <CategoryShowcase />}
+        {activeTab === 'screening' && <ScreeningWorkspace />}
       </section>
     </main>
   );

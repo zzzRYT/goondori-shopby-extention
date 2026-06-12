@@ -52,7 +52,8 @@ export async function collectScreeningList(
 
     const before = pager ? readSelectedPage(pager) : null;
     next.click();
-    await waitForPageChange(doc, before, opts);
+    const moved = await waitForPageChange(doc, before, opts);
+    if (!moved) break; // 클릭해도 페이지가 안 바뀜 — 같은 페이지 재수집 루프 방지(미달분은 count-mismatch로 표면화)
   }
 
   const rows = [...collected.values()];
@@ -122,13 +123,14 @@ async function waitForPageChange(
   doc: Document,
   before: number | null,
   opts: Required<CollectOptions>,
-) {
+): Promise<boolean> {
   const deadline = Date.now() + opts.timeoutMs;
   while (Date.now() < deadline) {
     const pager = doc.querySelector(BRAND_PAGINATION_SELECTOR);
-    if (pager && readSelectedPage(pager) !== before) return;
+    if (pager && readSelectedPage(pager) !== before) return true;
     await sleep(opts.waitMs);
   }
+  return false; // 타임아웃 — 페이지 미전환
 }
 
 function sleep(ms: number): Promise<void> {

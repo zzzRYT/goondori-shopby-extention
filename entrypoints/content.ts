@@ -10,6 +10,8 @@ import {
 } from '../lib/shopby/display-radios';
 import { fillByMap, type FieldMap } from '../lib/shopby/fill';
 import { DISPLAY_FIELD_MAP } from '../lib/shopby/selectors';
+import { collectScreeningList } from '../lib/shopby/screening/collect';
+import { waitForScreeningParse } from '../lib/shopby/screening/popup-parser';
 
 // 진열 값 읽기(readCurrentDisplay)는 background가 scripting.executeScript로 전 프레임을
 // 직접 훑는다(docs/recon.md: 폼이 iframe에 있어 메시지 브로드캐스트 레이스로 누락됨). 여기선 처리하지 않는다.
@@ -29,6 +31,10 @@ export default defineContentScript({
     onMessage('openCategoryEditor', (message) =>
       openCategoryEditor(document, message.data),
     );
+    // 심사 스캔: 사이드패널이 frameId를 지정해 보내므로(그리드 프레임 사전 탐색)
+    // 멀티프레임 브로드캐스트 레이스(docs/recon.md) 문제가 없다.
+    onMessage('collectScreeningList', () => collectScreeningList(document));
+    onMessage('parseScreeningPopup', () => waitForScreeningParse(document));
     startExtraInfoGuide(document);
     startCategoryCodeGuide(document);
     startBannerAnchor();

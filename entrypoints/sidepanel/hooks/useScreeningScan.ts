@@ -31,45 +31,52 @@ const INITIAL: ScanState = {
 export function useScreeningScan() {
   const [state, setState] = useState<ScanState>(INITIAL);
   const signalRef = useRef({ cancelled: false });
+  const runningRef = useRef(false);
 
   const cancel = useCallback(() => {
     signalRef.current.cancelled = true;
   }, []);
 
   const start = useCallback(async (rules: Rule[]) => {
-    signalRef.current = { cancelled: false };
-    setState({ ...INITIAL, phase: 'collecting' });
+    if (runningRef.current) return; // 리렌더 전 더블클릭으로 인한 동시 스캔 방지
+    runningRef.current = true;
+    try {
+      signalRef.current = { cancelled: false };
+      setState({ ...INITIAL, phase: 'collecting' });
 
-    const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (activeTab?.id == null) {
-      setState((prev) => ({ ...prev, phase: 'collect-failed', error: '활성 탭을 찾지 못했어요' }));
-      return;
+      const [activeTab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (activeTab?.id == null) {
+        setState((prev) => ({ ...prev, phase: 'collect-failed', error: '활성 탭을 찾지 못했어요' }));
+        return;
+      }
+
+      // 목록 그리드가 있는 프레임을 먼저 찾는다 — 멀티프레임 브로드캐스트 레이스 회피
+      // (배경: entrypoints/background.ts:34-38 주석, docs/recon.md).
+      const frameId = await findGridFrameId(activeTab.id);
+      if (frameId == null) {
+        setState((prev) => ({
+          ...prev,
+          phase: 'collect-failed',
+          error: '활성 탭에서 상품심사 그리드를 찾지 못했어요 — 상품심사 목록을 연 상태에서 실행해주세요',
+        }));
+        return;
+      }
+
+      const summary = await runScan(
+        makePorts(activeTab.id, frameId),
+        rules,
+        {
+          onPhase: (phase) => setState((prev) => ({ ...prev, phase })),
+          onProgress: (done, total) => setState((prev) => ({ ...prev, done, total })),
+          onResult: (result) => setState((prev) => ({ ...prev, results: [...prev.results, result] })),
+        },
+        signalRef.current,
+      );
+
+      setState((prev) => ({ ...prev, phase: summary.phase, countMismatch: summary.countMismatch }));
+    } finally {
+      runningRef.current = false;
     }
-
-    // 목록 그리드가 있는 프레임을 먼저 찾는다 — 멀티프레임 브로드캐스트 레이스 회피
-    // (배경: entrypoints/background.ts:34-38 주석, docs/recon.md).
-    const frameId = await findGridFrameId(activeTab.id);
-    if (frameId == null) {
-      setState((prev) => ({
-        ...prev,
-        phase: 'collect-failed',
-        error: '활성 탭에서 상품심사 그리드를 찾지 못했어요 — 상품심사 목록을 연 상태에서 실행해주세요',
-      }));
-      return;
-    }
-
-    const summary = await runScan(
-      makePorts(activeTab.id, frameId),
-      rules,
-      {
-        onPhase: (phase) => setState((prev) => ({ ...prev, phase })),
-        onProgress: (done, total) => setState((prev) => ({ ...prev, done, total })),
-        onResult: (result) => setState((prev) => ({ ...prev, results: [...prev.results, result] })),
-      },
-      signalRef.current,
-    );
-
-    setState((prev) => ({ ...prev, phase: summary.phase, countMismatch: summary.countMismatch }));
   }, []);
 
   return { state, start, cancel };
@@ -111,6 +118,7 @@ async function parseWithRetry(tabId: number): Promise<ScreeningPopupResult> {
   const maxAttempts = 20;
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     try {
+      // 팝업은 단일 문서라 메인 프레임(frameId 0)에만 content script가 붙는다
       return await sendMessage('parseScreeningPopup', undefined, { tabId, frameId: 0 });
     } catch {
       await sleep(300);

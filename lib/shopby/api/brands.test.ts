@@ -10,12 +10,12 @@ describe('fetchBrands', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('display/brands/search 를 호출한다', async () => {
-    const spy = vi.fn(() => Promise.resolve(new Response(JSON.stringify(pageOf(1)), { status: 200 })));
+    const spy = vi.fn((_input: URL) => Promise.resolve(new Response(JSON.stringify(pageOf(1)), { status: 200 })));
     vi.stubGlobal('fetch', spy);
 
     await fetchBrands('client');
 
-    const requested = String((spy.mock.calls[0]![0] as URL).pathname);
+    const requested = String(spy.mock.calls[0]![0].pathname);
     expect(requested).toBe('/display/brands/search');
   });
 

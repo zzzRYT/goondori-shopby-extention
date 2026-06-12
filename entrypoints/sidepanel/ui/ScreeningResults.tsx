@@ -48,8 +48,8 @@ export function ScreeningResults({ results, onOpen }: Props) {
               {result.status === 'failed' && (
                 <span className="screening-results__fail">{result.failReason}</span>
               )}
-              {result.violations.map((violation, index) => (
-                <span key={index} className="screening-results__violation">
+              {result.violations.map((violation) => (
+                <span key={violation.ruleId} className="screening-results__violation">
                   · {violation.label}: {violation.message}
                   {violation.actual && ` (현재: ${violation.actual})`}
                 </span>

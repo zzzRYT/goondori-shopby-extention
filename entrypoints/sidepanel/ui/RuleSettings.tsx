@@ -87,7 +87,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
   }
 
   function submit() {
-    const id = `rule-${Date.now()}`;
+    const id = `rule-${crypto.randomUUID()}`;
     if (type === 'required') {
       onAdd({ id, type: 'required', section, field, enabled: true });
     } else if (type === 'expected') {

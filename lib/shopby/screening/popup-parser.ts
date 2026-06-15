@@ -1,6 +1,7 @@
 import {
   SCREENING_SECTIONS,
   type ParsedScreeningProduct,
+  type ParsedScreening,
   type ScreeningChange,
   type ScreeningImages,
   type ScreeningPopupResult,
@@ -104,6 +105,15 @@ function cellText(cell: Element): string {
   return cell.querySelector('img') ? '(이미지)' : '';
 }
 
+// 종류 판별: 수정(변경 전/후) 우선 검사 후 등록. 둘 다 아니면 null(렌더 전).
+export function parseScreening(doc: Document): ParsedScreening | null {
+  const changes = parseScreeningChanges(doc);
+  if (changes) return { kind: 'modify', changes };
+  const product = parseScreeningDocument(doc);
+  if (product) return { kind: 'register', product };
+  return null;
+}
+
 export type WaitOptions = { timeoutMs?: number; pollMs?: number };
 
 // SPA 렌더 완료를 고정 지연 대신 조건 폴링으로 기다린다.
@@ -119,8 +129,8 @@ export async function waitForScreeningParse(
   for (;;) {
     if (doc.querySelector('input[type="password"]')) return { status: 'login-redirect' };
 
-    const product = parseScreeningDocument(doc);
-    if (product) return { status: 'ok', product };
+    const parsed = parseScreening(doc);
+    if (parsed) return { status: 'ok', ...parsed };
 
     if (Date.now() >= deadline) return { status: 'not-rendered' };
     await sleep(pollMs);

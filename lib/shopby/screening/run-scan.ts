@@ -1,6 +1,7 @@
 import { evaluate, type Rule, type Violation } from './rules';
 import type {
   CollectScreeningListResult,
+  ScreeningChange,
   ScreeningPopupResult,
   ScreeningRow,
 } from './types';
@@ -8,8 +9,10 @@ import type {
 export type ScreeningResult = {
   productNo: string;
   productName: string;
+  kind: 'register' | 'modify';
   status: 'ok' | 'failed';
-  violations: Violation[];
+  violations: Violation[]; // register 전용 (modify는 항상 [])
+  changes: ScreeningChange[]; // modify 전용 (register는 항상 [])
   failReason?: string;
 };
 
@@ -91,21 +94,36 @@ export async function runScan(
         return;
       }
 
-      const result: ScreeningResult =
-        outcome.status === 'ok'
-          ? {
-              productNo: row.productNo,
-              productName: row.productName,
-              status: 'ok',
-              violations: evaluate(outcome.product, rules),
-            }
-          : {
-              productNo: row.productNo,
-              productName: row.productName,
-              status: 'failed',
-              violations: [],
-              failReason: '수집 실패(타임아웃)',
-            };
+      let result: ScreeningResult;
+      if (outcome.status === 'not-rendered') {
+        result = {
+          productNo: row.productNo,
+          productName: row.productName,
+          kind: 'register',
+          status: 'failed',
+          violations: [],
+          changes: [],
+          failReason: '수집 실패(타임아웃)',
+        };
+      } else if (outcome.kind === 'register') {
+        result = {
+          productNo: row.productNo,
+          productName: row.productName,
+          kind: 'register',
+          status: 'ok',
+          violations: evaluate(outcome.product, rules),
+          changes: [],
+        };
+      } else {
+        result = {
+          productNo: row.productNo,
+          productName: row.productName,
+          kind: 'modify',
+          status: 'ok',
+          violations: [],
+          changes: outcome.changes,
+        };
+      }
 
       results.push(result);
       callbacks.onResult?.(result);

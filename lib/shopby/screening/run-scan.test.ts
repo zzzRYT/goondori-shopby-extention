@@ -3,6 +3,7 @@ import { runScan, SCAN_CONCURRENCY, type ScanPorts, type ScreeningResult } from 
 import type {
   CollectScreeningListResult,
   ParsedScreeningProduct,
+  ScreeningChange,
   ScreeningPopupResult,
 } from './types';
 import type { Rule } from './rules';
@@ -32,7 +33,7 @@ function makePorts(overrides: Partial<ScanPorts> = {}): ScanPorts & { closed: nu
     closed,
     collectList: vi.fn(async () => list(['1', '2'])),
     openPopup: vi.fn(async () => nextTabId++),
-    parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => ({ status: 'ok', product: PRODUCT })),
+    parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => ({ status: 'ok', kind: 'register', product: PRODUCT })),
     closePopup: vi.fn(async (tabId: number) => {
       closed.push(tabId);
     }),
@@ -70,7 +71,7 @@ describe('runScan', () => {
         peak = Math.max(peak, inFlight);
         await new Promise((resolve) => setTimeout(resolve, 5));
         inFlight -= 1;
-        return { status: 'ok', product: PRODUCT };
+        return { status: 'ok', kind: 'register', product: PRODUCT };
       }),
     });
 
@@ -113,7 +114,7 @@ describe('runScan', () => {
       collectList: vi.fn(async () => list(rows)),
       parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => {
         signal.cancelled = true; // 처리되는 즉시 취소
-        return { status: 'ok', product: PRODUCT };
+        return { status: 'ok', kind: 'register', product: PRODUCT };
       }),
     });
 
@@ -154,5 +155,41 @@ describe('runScan', () => {
     const summary = await runScan(ports, RULES);
 
     expect(summary.countMismatch).toBe(true);
+  });
+
+  const CHANGES: ScreeningChange[] = [
+    { section: '판매정보', label: '즉시할인', before: '15,000원', after: '20,000원' },
+  ];
+
+  it('수정 팝업은 규칙 평가 없이 changes를 채우고 violations는 빈다', async () => {
+    const ports = makePorts({
+      collectList: vi.fn(async () => list(['9'])),
+      parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => ({ status: 'ok', kind: 'modify', changes: CHANGES })),
+    });
+
+    const summary = await runScan(ports, RULES);
+
+    expect(summary.results[0].kind).toBe('modify');
+    expect(summary.results[0].changes).toEqual(CHANGES);
+    expect(summary.results[0].violations).toEqual([]);
+  });
+
+  it('등록·수정 혼합 목록을 한 스캔에서 종류별로 조립한다', async () => {
+    let n = 0;
+    const ports = makePorts({
+      collectList: vi.fn(async () => list(['1', '2'])),
+      parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => {
+        n += 1;
+        return n === 1
+          ? { status: 'ok', kind: 'register', product: PRODUCT }
+          : { status: 'ok', kind: 'modify', changes: CHANGES };
+      }),
+    });
+
+    const summary = await runScan(ports, RULES);
+
+    const kinds = summary.results.map((r) => r.kind).sort();
+    expect(kinds).toEqual(['modify', 'register']);
+    expect(summary.results.every((r) => r.status === 'ok')).toBe(true);
   });
 });

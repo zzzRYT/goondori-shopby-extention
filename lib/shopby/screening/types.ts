@@ -33,7 +33,7 @@ export type CollectScreeningListResult = {
 };
 
 export type ScreeningPopupResult =
-  | { status: 'ok'; product: ParsedScreeningProduct }
+  | ({ status: 'ok' } & ParsedScreening)
   | { status: 'not-rendered' }
   | { status: 'login-redirect' };
 

@@ -29,13 +29,13 @@ describe('mergeCurationRules', () => {
     expect(merged.at(-1)).toEqual(saved[0]);
   });
 
-  it('이미 있는 큐레이션 규칙은 저장본 우선 — 꺼둔 상태를 보존한다', () => {
+  it('정의·enabled가 모두 같으면 원본 배열 참조를 그대로 반환한다(쓰기 방지)', () => {
     const toggledOff: Rule = { ...CURATION_RULES[0], enabled: false } as Rule;
     const saved: Rule[] = [toggledOff, ...CURATION_RULES.slice(1)];
 
     const merged = mergeCurationRules(saved);
 
-    expect(merged).toBe(saved); // 빠진 규칙이 없으면 그대로 반환
+    expect(merged).toBe(saved);
     expect(merged[0].enabled).toBe(false);
   });
 
@@ -46,5 +46,35 @@ describe('mergeCurationRules', () => {
 
     expect(merged).toHaveLength(CURATION_RULES.length);
     expect(merged[0]).toEqual(CURATION_RULES[0]);
+  });
+
+  it('규칙 정의는 코드가 정답 — 저장본의 옛 정의를 교정하되 enabled는 보존한다', () => {
+    // 옛 버전: 검색어가 empty(있으면 위반)로 저장돼 있고, MD가 꺼둔 상태.
+    const stale: Rule = {
+      id: 'curation-search-keyword',
+      type: 'empty',
+      section: '기본정보',
+      field: '검색어',
+      enabled: false,
+    };
+    const saved: Rule[] = CURATION_RULES.map((rule) =>
+      rule.id === stale.id ? stale : rule,
+    );
+
+    const merged = mergeCurationRules(saved);
+    const fixed = merged.find((rule) => rule.id === 'curation-search-keyword')!;
+
+    expect(fixed.type).toBe('required'); // 코드 정의로 교정됨
+    expect(fixed.enabled).toBe(false); // 사용자가 끈 상태는 보존
+  });
+
+  it('비-큐레이션 규칙(시드·커스텀)은 큐레이션 뒤에 순서대로 유지된다', () => {
+    const custom: Rule = { id: 'custom', type: 'required', section: '기본정보', field: '브랜드', enabled: true };
+    const saved: Rule[] = [...CURATION_RULES, custom];
+
+    const merged = mergeCurationRules(saved);
+
+    expect(merged.at(-1)).toEqual(custom);
+    expect(merged.slice(0, CURATION_RULES.length).every((rule) => rule.id.startsWith('curation-'))).toBe(true);
   });
 });

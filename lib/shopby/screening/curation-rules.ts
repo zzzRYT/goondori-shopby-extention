@@ -46,10 +46,18 @@ export function isCurationRule(id: string): boolean {
   return id in CURATION_META;
 }
 
-// 저장된 규칙에 없는 큐레이션 규칙을 앞쪽에 복원한다(삭제됐거나 새 버전에서 추가된 규칙).
-// 이미 있는 규칙은 저장본 우선 — MD가 끈 상태(enabled=false)를 보존한다.
+// 큐레이션 규칙의 '정의'(type·section·field·op·kind 등)는 코드가 정답이다.
+// 저장본에서 가져오는 건 MD가 끈 상태(enabled)뿐 — 코드에서 규칙 정의를 바꾸면
+// 기존 사용자의 storage도 다음 로드에서 자동 교정된다(예: 검색어 empty→required 전환).
+// 비-큐레이션(시드·커스텀) 규칙은 순서 그대로 뒤에 유지한다.
+// 변경이 없으면 원본 배열 참조를 그대로 돌려준다 — 불필요한 storage 쓰기 방지.
 export function mergeCurationRules(saved: Rule[]): Rule[] {
-  const existing = new Set(saved.map((rule) => rule.id));
-  const missing = CURATION_RULES.filter((rule) => !existing.has(rule.id));
-  return missing.length ? [...missing, ...saved] : saved;
+  const enabledById = new Map(saved.map((rule) => [rule.id, rule.enabled]));
+  const reconciledCuration = CURATION_RULES.map((rule) => {
+    const enabled = enabledById.get(rule.id);
+    return enabled === undefined ? rule : { ...rule, enabled };
+  });
+  const rest = saved.filter((rule) => !isCurationRule(rule.id));
+  const next = [...reconciledCuration, ...rest];
+  return JSON.stringify(next) === JSON.stringify(saved) ? saved : next;
 }

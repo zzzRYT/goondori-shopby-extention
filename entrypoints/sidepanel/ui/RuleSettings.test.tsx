@@ -2,6 +2,7 @@ import '@testing-library/jest-dom';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { CURATION_RULES } from '../../../lib/shopby/screening/curation-rules';
 import type { Rule } from '../../../lib/shopby/screening/rules';
 import { RuleSettings } from './RuleSettings';
 
@@ -42,6 +43,31 @@ describe('RuleSettings', () => {
     expect(onChange).toHaveBeenCalledWith([RULES[1], RULES[2]]);
   });
 
+  it('큐레이션 규칙은 제목·설명으로 별도 그룹에 표시된다', () => {
+    render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: '기본 큐레이션' })).toBeInTheDocument();
+    expect(screen.getByText('브랜드 검수')).toBeInTheDocument();
+    expect(screen.getByText('상세 상단/하단 이미지 금지')).toBeInTheDocument();
+    expect(screen.getByText('검색어 입력 확인')).toBeInTheDocument();
+    expect(screen.getByText('서비스 상품 금지(배송상품만)')).toBeInTheDocument();
+    expect(screen.getByText('쇼핑몰 배송 금지')).toBeInTheDocument();
+    expect(screen.getByText('쇼핑몰 자체 상품 금지')).toBeInTheDocument();
+  });
+
+  it('큐레이션 규칙은 삭제 버튼이 없고 토글만 가능하다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={onChange} />);
+
+    expect(screen.queryByRole('button', { name: /규칙 삭제: 기본정보 · 브랜드/ })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('checkbox', { name: /브랜드 검수/ }));
+
+    const next = onChange.mock.calls[0][0] as Rule[];
+    expect(next.find((rule) => rule.id === 'curation-brand')?.enabled).toBe(false);
+    expect(next).toHaveLength(CURATION_RULES.length + RULES.length);
+  });
+
   it('필수값 규칙을 추가할 수 있다 (필드는 카탈로그 드롭다운)', async () => {
     const onChange = vi.fn();
     render(<RuleSettings rules={[]} onChange={onChange} />);
@@ -54,5 +80,18 @@ describe('RuleSettings', () => {
     expect(onChange).toHaveBeenCalledTimes(1);
     const added = onChange.mock.calls[0][0][0];
     expect(added).toMatchObject({ type: 'required', section: '배송정보', field: '상품 중량', enabled: true });
+  });
+
+  it('공란 규칙을 추가할 수 있다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[]} onChange={onChange} />);
+
+    await userEvent.selectOptions(screen.getByLabelText('검사 유형'), 'empty');
+    await userEvent.selectOptions(screen.getByLabelText('섹션'), '기본정보');
+    await userEvent.selectOptions(screen.getByLabelText('항목'), '검색어');
+    await userEvent.click(screen.getByRole('button', { name: '규칙 추가' }));
+
+    const added = onChange.mock.calls[0][0][0];
+    expect(added).toMatchObject({ type: 'empty', section: '기본정보', field: '검색어', enabled: true });
   });
 });

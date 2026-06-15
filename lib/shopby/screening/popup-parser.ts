@@ -8,7 +8,13 @@ import {
 // CSS 모듈 해시(Layout_view-title__ZDIpZ)는 빌드마다 바뀔 수 있어 접두 부분만 매칭한다.
 const SECTION_TITLE_SELECTOR = '[class*="Layout_view-title"]';
 
-const DETAIL_IMAGE_FIELDS = new Set(['상품 상세', '상품 상세(상단)', '상품 상세(하단)']);
+const IMAGE_FIELD_BUCKETS: Record<string, keyof ScreeningImages> = {
+  상품이미지: 'main',
+  리스트이미지: 'list',
+  '상품 상세': 'detail',
+  '상품 상세(상단)': 'detailTop',
+  '상품 상세(하단)': 'detailBottom',
+};
 
 function normalize(text: string | null | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -18,7 +24,7 @@ function normalize(text: string | null | undefined): string {
 // 필수 섹션(기본정보·판매정보·배송정보)이 하나라도 없으면 렌더 미완료로 보고 null.
 export function parseScreeningDocument(doc: Document): ParsedScreeningProduct | null {
   const fields: ParsedScreeningProduct['fields'] = {};
-  const images: ScreeningImages = { main: [], list: [], detail: [] };
+  const images: ScreeningImages = { main: [], list: [], detail: [], detailTop: [], detailBottom: [] };
 
   for (const titleEl of doc.querySelectorAll(SECTION_TITLE_SELECTOR)) {
     const sectionName = SCREENING_SECTIONS.find((name) =>
@@ -49,13 +55,13 @@ export function parseScreeningDocument(doc: Document): ParsedScreeningProduct | 
 }
 
 function collectImages(label: string, cell: Element, images: ScreeningImages) {
+  const bucket = IMAGE_FIELD_BUCKETS[label];
+  if (!bucket) return;
+
   const srcs = [...cell.querySelectorAll('img')]
     .map((img) => img.getAttribute('src') ?? '')
     .filter(Boolean);
-
-  if (label === '상품이미지') images.main.push(...srcs);
-  else if (label === '리스트이미지') images.list.push(...srcs);
-  else if (DETAIL_IMAGE_FIELDS.has(label)) images.detail.push(...srcs);
+  images[bucket].push(...srcs);
 }
 
 export type WaitOptions = { timeoutMs?: number; pollMs?: number };

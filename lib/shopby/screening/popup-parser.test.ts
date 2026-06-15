@@ -35,6 +35,30 @@ describe('parseScreeningDocument (admin-screening-popup.html 픽스처)', () => 
     expect(product!.images.list).toEqual([]);
     expect(product!.images.detail).toHaveLength(10);
     expect(product!.images.detail[0]).toContain('ai.esmplus.com');
+    expect(product!.images.detailTop).toEqual([]);
+    expect(product!.images.detailBottom).toEqual([]);
+  });
+
+  it('상품 상세(상단)/(하단) 이미지를 별도 버킷으로 분류한다', () => {
+    // 픽스처에는 상단/하단 이미지가 없어 합성 문서로 라우팅을 검증한다.
+    const html = `
+      <html><body>
+        <div><h3 class="Layout_view-title__x">기본정보</h3><table><tr><td>상품명</td><td>테스트</td></tr></table></div>
+        <div><h3 class="Layout_view-title__x">판매정보</h3><table><tr><td>판매가</td><td>1,000원</td></tr></table></div>
+        <div><h3 class="Layout_view-title__x">배송정보</h3><table><tr><td>배송구분</td><td>파트너사 배송</td></tr></table></div>
+        <div><h3 class="Layout_view-title__x">이미지정보</h3><table>
+          <tr><td>상품 상세(상단)</td><td><img src="https://a.com/top.jpg"></td></tr>
+          <tr><td>상품 상세</td><td><img src="https://a.com/body.jpg"></td></tr>
+          <tr><td>상품 상세(하단)</td><td><img src="https://a.com/bottom.jpg"></td></tr>
+        </table></div>
+      </body></html>`;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    const product = parseScreeningDocument(doc);
+
+    expect(product!.images.detailTop).toEqual(['https://a.com/top.jpg']);
+    expect(product!.images.detail).toEqual(['https://a.com/body.jpg']);
+    expect(product!.images.detailBottom).toEqual(['https://a.com/bottom.jpg']);
   });
 
   it('수정필요(의견 입력) 행은 항목에서 제외한다', () => {

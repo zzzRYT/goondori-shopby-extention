@@ -1,11 +1,25 @@
 import type { ParsedScreeningProduct, SectionName } from './types';
 
 export type RuleOp = 'equals' | 'notEquals' | 'includes' | 'gt' | 'gte' | 'lt' | 'lte';
-export type ImageRuleKind = 'mainRequired' | 'listRequired' | 'detailMin' | 'externalHost';
+export type ImageRuleKind =
+  | 'mainRequired'
+  | 'listRequired'
+  | 'detailMin'
+  | 'detailPositionForbidden'
+  | 'externalHost';
 
 export type RequiredRule = {
   id: string;
   type: 'required';
+  section: SectionName;
+  field: string;
+  enabled: boolean;
+};
+
+// required의 반대 — 값이 입력되어 있으면 위반 (예: 검색어는 비워서 등록해야 함).
+export type EmptyRule = {
+  id: string;
+  type: 'empty';
   section: SectionName;
   field: string;
   enabled: boolean;
@@ -30,7 +44,7 @@ export type ImageRule = {
   enabled: boolean;
 };
 
-export type Rule = RequiredRule | ExpectedRule | ImageRule;
+export type Rule = RequiredRule | EmptyRule | ExpectedRule | ImageRule;
 
 export type Violation = { ruleId: string; label: string; message: string; actual: string };
 
@@ -74,7 +88,7 @@ export function evaluate(product: ParsedScreeningProduct, rules: Rule[]): Violat
 
 function checkField(
   product: ParsedScreeningProduct,
-  rule: RequiredRule | ExpectedRule,
+  rule: RequiredRule | EmptyRule | ExpectedRule,
 ): Violation | null {
   const value = product.fields[rule.section]?.[rule.field];
   const label = `${rule.section} · ${rule.field}`;
@@ -88,6 +102,12 @@ function checkField(
     return value === ''
       ? { ruleId: rule.id, label, message: '필수 항목 공란', actual: '' }
       : null;
+  }
+
+  if (rule.type === 'empty') {
+    return value === ''
+      ? null
+      : { ruleId: rule.id, label, message: '공란이어야 하는 항목에 값이 있음', actual: value };
   }
 
   return checkExpected(rule, value, label);
@@ -147,9 +167,16 @@ function checkImage(product: ParsedScreeningProduct, rule: ImageRule): Violation
       ? v('이미지 · 상품 상세', `상세 이미지 ${min}장 미만`, `${images.detail.length}장`)
       : null;
   }
+  if (rule.kind === 'detailPositionForbidden') {
+    const top = images.detailTop.length;
+    const bottom = images.detailBottom.length;
+    return top + bottom > 0
+      ? v('이미지 · 상품 상세(상단/하단)', '상단/하단 상세 이미지 사용(앱에서 표현 안 됨)', `상단 ${top}장 · 하단 ${bottom}장`)
+      : null;
+  }
 
   const allow = rule.allowHosts?.length ? rule.allowHosts : DEFAULT_ALLOW_HOSTS;
-  const all = [...images.main, ...images.list, ...images.detail];
+  const all = [...images.main, ...images.list, ...images.detail, ...images.detailTop, ...images.detailBottom];
   const offending = [
     ...new Set(
       all

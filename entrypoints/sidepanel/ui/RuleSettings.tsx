@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CURATION_META, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
 import { FIELD_CATALOG, type CatalogSection } from '../../../lib/shopby/screening/field-catalog';
 import type { ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
 
@@ -18,11 +19,13 @@ const IMAGE_KIND_LABELS: Record<ImageRuleKind, string> = {
   mainRequired: '대표이미지 필수',
   listRequired: '리스트이미지 필수',
   detailMin: '상세 이미지 최소 장수',
+  detailPositionForbidden: '상세 상단/하단 이미지 금지',
   externalHost: '허용 외 이미지 호스트 경고',
 };
 
 export function describeRule(rule: Rule): string {
   if (rule.type === 'required') return `${rule.section} · ${rule.field} 필수`;
+  if (rule.type === 'empty') return `${rule.section} · ${rule.field} 공란`;
   if (rule.type === 'expected') {
     const op = OP_OPTIONS.find((option) => option.value === rule.op)?.label ?? rule.op;
     return `${rule.section} · ${rule.field} ${op} ${rule.value}`;
@@ -33,6 +36,9 @@ export function describeRule(rule: Rule): string {
 }
 
 export function RuleSettings({ rules, onChange }: Props) {
+  const curationRules = rules.filter((rule) => isCurationRule(rule.id));
+  const customRules = rules.filter((rule) => !isCurationRule(rule.id));
+
   function toggle(id: string, enabled: boolean) {
     onChange(rules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)));
   }
@@ -43,29 +49,58 @@ export function RuleSettings({ rules, onChange }: Props) {
 
   return (
     <div className="rule-settings">
-      <ul className="rule-settings__list">
-        {rules.map((rule) => (
-          <li key={rule.id} className="rule-settings__row">
-            <label className="rule-settings__toggle">
-              <input
-                type="checkbox"
-                checked={rule.enabled}
-                onChange={(event) => toggle(rule.id, event.target.checked)}
-              />
-              {describeRule(rule)}
-            </label>
-            <button
-              type="button"
-              className="rule-settings__delete"
-              aria-label={`규칙 삭제: ${describeRule(rule)}`}
-              onClick={() => remove(rule.id)}
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-      </ul>
-      <AddRuleForm onAdd={(rule) => onChange([...rules, rule])} />
+      {curationRules.length > 0 && (
+        <section aria-label="기본 큐레이션 규칙">
+          <h3 className="rule-settings__heading">기본 큐레이션</h3>
+          <ul className="rule-settings__list">
+            {curationRules.map((rule) => {
+              const meta = CURATION_META[rule.id];
+              return (
+                <li key={rule.id} className="rule-settings__row">
+                  <label className="rule-settings__toggle">
+                    <input
+                      type="checkbox"
+                      checked={rule.enabled}
+                      onChange={(event) => toggle(rule.id, event.target.checked)}
+                    />
+                    <span>
+                      {meta.title}
+                      <small className="rule-settings__note">{meta.note}</small>
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      <section aria-label="추가 규칙">
+        <h3 className="rule-settings__heading">추가 규칙</h3>
+        <ul className="rule-settings__list">
+          {customRules.map((rule) => (
+            <li key={rule.id} className="rule-settings__row">
+              <label className="rule-settings__toggle">
+                <input
+                  type="checkbox"
+                  checked={rule.enabled}
+                  onChange={(event) => toggle(rule.id, event.target.checked)}
+                />
+                {describeRule(rule)}
+              </label>
+              <button
+                type="button"
+                className="rule-settings__delete"
+                aria-label={`규칙 삭제: ${describeRule(rule)}`}
+                onClick={() => remove(rule.id)}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+        <AddRuleForm onAdd={(rule) => onChange([...rules, rule])} />
+      </section>
     </div>
   );
 }
@@ -90,6 +125,8 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
     const id = `rule-${crypto.randomUUID()}`;
     if (type === 'required') {
       onAdd({ id, type: 'required', section, field, enabled: true });
+    } else if (type === 'empty') {
+      onAdd({ id, type: 'empty', section, field, enabled: true });
     } else if (type === 'expected') {
       onAdd({ id, type: 'expected', section, field, op, value, enabled: true });
     } else {
@@ -109,6 +146,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
         검사 유형
         <select value={type} onChange={(event) => setType(event.target.value as Rule['type'])}>
           <option value="required">필수값</option>
+          <option value="empty">공란</option>
           <option value="expected">기대값</option>
           <option value="image">이미지</option>
         </select>

@@ -9,7 +9,14 @@ export const SCREENING_SECTIONS = [
 
 export type SectionName = (typeof SCREENING_SECTIONS)[number];
 
-export type ScreeningImages = { main: string[]; list: string[]; detail: string[] };
+// detail은 '상품 상세' 본문, detailTop/detailBottom은 '상품 상세(상단)/(하단)' — 앱에서 표현되지 않아 별도 검사 대상.
+export type ScreeningImages = {
+  main: string[];
+  list: string[];
+  detail: string[];
+  detailTop: string[];
+  detailBottom: string[];
+};
 
 export type ParsedScreeningProduct = {
   fields: Partial<Record<SectionName, Record<string, string>>>;

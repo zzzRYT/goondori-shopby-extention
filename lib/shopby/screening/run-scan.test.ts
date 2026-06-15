@@ -9,7 +9,7 @@ import type { Rule } from './rules';
 
 const PRODUCT: ParsedScreeningProduct = {
   fields: { 기본정보: { 제조사명: '' }, 판매정보: {}, 배송정보: {} },
-  images: { main: [], list: [], detail: [] },
+  images: { main: [], list: [], detail: [], detailTop: [], detailBottom: [] },
 };
 
 const RULES: Rule[] = [

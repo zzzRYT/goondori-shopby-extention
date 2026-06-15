@@ -14,6 +14,8 @@ function product(overrides?: Partial<ParsedScreeningProduct>): ParsedScreeningPr
       main: ['//shopby-images.cdn-nhncommerce.com/a/b.jpg'],
       list: [],
       detail: ['https://ai.esmplus.com/x/1.jpg', 'https://ai.esmplus.com/x/2.jpg'],
+      detailTop: [],
+      detailBottom: [],
     },
     ...overrides,
   };
@@ -63,6 +65,31 @@ describe('evaluate', () => {
     expect(evaluate(product(), [rule])).toEqual([]);
   });
 
+  it('empty: 값이 있으면 위반 (검색어처럼 비워야 하는 항목)', () => {
+    const rule: Rule = { id: 'r1', type: 'empty', section: '기본정보', field: '브랜드', enabled: true };
+
+    const violations = evaluate(product(), [rule]);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].message).toContain('공란이어야');
+    expect(violations[0].actual).toBe('디라이프');
+  });
+
+  it('empty: 공란이면 통과', () => {
+    const rule: Rule = { id: 'r1', type: 'empty', section: '기본정보', field: '제조사명', enabled: true };
+
+    expect(evaluate(product(), [rule])).toEqual([]);
+  });
+
+  it('empty: 항목 자체가 없으면 파싱 불일치 위반', () => {
+    const rule: Rule = { id: 'r1', type: 'empty', section: '기본정보', field: '없는항목', enabled: true };
+
+    const violations = evaluate(product(), [rule]);
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].message).toContain('항목을 찾지 못함');
+  });
+
   it('required: 항목 자체가 없으면 파싱 불일치 위반 (조용히 통과 금지)', () => {
     const rule: Rule = { id: 'r1', type: 'required', section: '기본정보', field: '없는항목', enabled: true };
 
@@ -107,7 +134,7 @@ describe('evaluate', () => {
 
     expect(evaluate(product(), [rule])).toEqual([]);
     expect(
-      evaluate(product({ images: { main: [], list: [], detail: [] } }), [rule]),
+      evaluate(product({ images: { main: [], list: [], detail: [], detailTop: [], detailBottom: [] } }), [rule]),
     ).toHaveLength(1);
   });
 
@@ -125,6 +152,28 @@ describe('evaluate', () => {
     expect(evaluate(product(), [fail])).toHaveLength(1);
   });
 
+  it('image detailPositionForbidden: 상단/하단 상세 이미지가 있으면 위반', () => {
+    const rule: Rule = { id: 'r1', type: 'image', kind: 'detailPositionForbidden', enabled: true };
+
+    expect(evaluate(product(), [rule])).toEqual([]);
+
+    const violations = evaluate(
+      product({
+        images: {
+          main: [],
+          list: [],
+          detail: [],
+          detailTop: ['https://a.com/top.jpg'],
+          detailBottom: ['https://a.com/b1.jpg', 'https://a.com/b2.jpg'],
+        },
+      }),
+      [rule],
+    );
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].actual).toBe('상단 1장 · 하단 2장');
+  });
+
   it('image externalHost: 허용 외 호스트를 위반으로 모아 보여준다', () => {
     const rule: Rule = { id: 'r1', type: 'image', kind: 'externalHost', enabled: true };
 
@@ -132,6 +181,20 @@ describe('evaluate', () => {
 
     expect(violations).toHaveLength(1);
     expect(violations[0].actual).toContain('ai.esmplus.com');
+  });
+
+  it('image externalHost: 상단/하단 상세 이미지도 호스트 검사에 포함된다', () => {
+    const rule: Rule = { id: 'r1', type: 'image', kind: 'externalHost', enabled: true };
+
+    const violations = evaluate(
+      product({
+        images: { main: [], list: [], detail: [], detailTop: ['https://evil.example.com/x.jpg'], detailBottom: [] },
+      }),
+      [rule],
+    );
+
+    expect(violations).toHaveLength(1);
+    expect(violations[0].actual).toContain('evil.example.com');
   });
 
   it('enabled=false 규칙은 평가하지 않는다', () => {

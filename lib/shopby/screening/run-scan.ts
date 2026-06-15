@@ -41,7 +41,14 @@ export type ScanSummary = {
   countMismatch: boolean;
 };
 
+// 상품별 팝업 탭을 동시에 여는 최대 개수. 4를 넘기면 크롬의 백그라운드 탭
+// 스로틀링으로 렌더가 느려져 타임아웃 실패가 늘고, 어드민 서버 레이트리밋
+// 위험도 커진다 — 속도 이득 대비 손해가 큰 구간이라 보수적으로 둔다.
+export const SCAN_CONCURRENCY = 4;
+
 // 순수 실행기: 브라우저 API는 ports로 주입받는다(테스트는 페이크 ports).
+// 상품들을 SCAN_CONCURRENCY개씩 동시에 처리한다(워커 풀). 결과는 완료되는 대로
+// 스트리밍되므로 목록 순서가 아니라 완료 순서로 쌓인다(표시는 위반 건수로 정렬).
 export async function runScan(
   ports: ScanPorts,
   rules: Rule[],
@@ -58,42 +65,66 @@ export async function runScan(
   }
 
   const countMismatch = list.status === 'count-mismatch';
+  const rows = list.rows;
   const results: ScreeningResult[] = [];
   callbacks.onPhase?.('scanning');
 
-  for (const [index, row] of list.rows.entries()) {
-    if (signal.cancelled) {
-      callbacks.onPhase?.('cancelled');
-      return { phase: 'cancelled', results, totalCount: list.totalCount, countMismatch };
+  let cursor = 0;
+  let done = 0;
+  let sessionExpired = false; // 한 워커가 login-redirect를 감지하면 전 워커가 신규 투입을 멈춘다
+
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      // 다음 상품을 꺼내기 전에 멈춤 사유를 확인 — 진행 중인 건은 끝까지 두되 신규 투입만 차단.
+      if (signal.cancelled || sessionExpired) return;
+      const index = cursor;
+      if (index >= rows.length) return;
+      cursor += 1;
+      const row = rows[index];
+
+      const outcome = await scanOne(ports, row);
+
+      // 처리 도중 다른 워커가 세션 만료를 감지했으면 이 결과는 버린다(만료 후 데이터 신뢰 불가).
+      if (sessionExpired) return;
+      if (outcome === 'login-redirect') {
+        sessionExpired = true;
+        return;
+      }
+
+      const result: ScreeningResult =
+        outcome.status === 'ok'
+          ? {
+              productNo: row.productNo,
+              productName: row.productName,
+              status: 'ok',
+              violations: evaluate(outcome.product, rules),
+            }
+          : {
+              productNo: row.productNo,
+              productName: row.productName,
+              status: 'failed',
+              violations: [],
+              failReason: '수집 실패(타임아웃)',
+            };
+
+      results.push(result);
+      callbacks.onResult?.(result);
+      done += 1;
+      callbacks.onProgress?.(done, rows.length);
     }
+  };
 
-    const outcome = await scanOne(ports, row);
-    if (outcome === 'login-redirect') {
-      callbacks.onPhase?.('session-expired');
-      return { phase: 'session-expired', results, totalCount: list.totalCount, countMismatch };
-    }
+  const poolSize = Math.min(SCAN_CONCURRENCY, rows.length);
+  await Promise.all(Array.from({ length: poolSize }, () => worker()));
 
-    const result: ScreeningResult =
-      outcome.status === 'ok'
-        ? {
-            productNo: row.productNo,
-            productName: row.productName,
-            status: 'ok',
-            violations: evaluate(outcome.product, rules),
-          }
-        : {
-            productNo: row.productNo,
-            productName: row.productName,
-            status: 'failed',
-            violations: [],
-            failReason: '수집 실패(타임아웃)',
-          };
-
-    results.push(result);
-    callbacks.onResult?.(result);
-    callbacks.onProgress?.(index + 1, list.rows.length);
+  if (sessionExpired) {
+    callbacks.onPhase?.('session-expired');
+    return { phase: 'session-expired', results, totalCount: list.totalCount, countMismatch };
   }
-
+  if (signal.cancelled) {
+    callbacks.onPhase?.('cancelled');
+    return { phase: 'cancelled', results, totalCount: list.totalCount, countMismatch };
+  }
   callbacks.onPhase?.('done');
   return { phase: 'done', results, totalCount: list.totalCount, countMismatch };
 }

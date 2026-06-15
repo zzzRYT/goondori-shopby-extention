@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { runScan, type ScanPorts, type ScreeningResult } from './run-scan';
+import { runScan, SCAN_CONCURRENCY, type ScanPorts, type ScreeningResult } from './run-scan';
 import type {
   CollectScreeningListResult,
   ParsedScreeningProduct,
@@ -55,8 +55,29 @@ describe('runScan', () => {
     expect(summary.results).toHaveLength(2);
     expect(summary.results[0].violations).toHaveLength(1); // 제조사명 공란
     expect(streamed).toHaveLength(2);
-    expect(progress).toEqual([[1, 2], [2, 2]]);
+    expect(progress).toEqual([[1, 2], [2, 2]]); // 완료 카운터 — 완료 순서와 무관하게 1,2로 증가
     expect(ports.closed).toHaveLength(2); // 열었던 탭은 항상 닫는다
+  });
+
+  it('상품들을 SCAN_CONCURRENCY개까지 동시에 연다', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const rows = Array.from({ length: 12 }, (_, i) => String(i + 1));
+    const ports = makePorts({
+      collectList: vi.fn(async () => list(rows)),
+      parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => {
+        inFlight += 1;
+        peak = Math.max(peak, inFlight);
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        inFlight -= 1;
+        return { status: 'ok', product: PRODUCT };
+      }),
+    });
+
+    const summary = await runScan(ports, RULES);
+
+    expect(summary.results).toHaveLength(12);
+    expect(peak).toBe(SCAN_CONCURRENCY); // 동시에 4개까지만 떠 있었다
   });
 
   it('파싱 실패는 1회 재시도 후 "수집 실패" 결과로 남긴다 (침묵 누락 금지)', async () => {
@@ -70,25 +91,28 @@ describe('runScan', () => {
     expect(ports.closed).toHaveLength(2); // 시도마다 탭을 닫는다
   });
 
-  it('login-redirect면 즉시 전체 중단(session-expired) — 연속 실패 방지', async () => {
+  it('login-redirect면 세션 만료로 중단하고 신규 투입을 멈춘다 — 목록 전체를 열지 않는다', async () => {
+    const rows = Array.from({ length: 12 }, (_, i) => String(i + 1));
     const ports = makePorts({
-      collectList: vi.fn(async () => list(['1', '2', '3'])),
+      collectList: vi.fn(async () => list(rows)),
       parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => ({ status: 'login-redirect' })),
     });
 
     const summary = await runScan(ports, RULES);
 
     expect(summary.phase).toBe('session-expired');
-    expect(summary.results).toHaveLength(0);
-    expect(ports.openPopup).toHaveBeenCalledTimes(1); // 2·3번 상품은 시도하지 않음
+    expect(summary.results).toHaveLength(0); // 만료된 데이터는 결과로 남기지 않는다
+    // 동시 실행이라 첫 배치(최대 SCAN_CONCURRENCY)만 시도되고 나머지는 투입되지 않는다.
+    expect((ports.openPopup as ReturnType<typeof vi.fn>).mock.calls.length).toBeLessThanOrEqual(SCAN_CONCURRENCY);
   });
 
-  it('취소 시그널이 켜지면 남은 큐를 버리고 수집된 결과는 유지한다', async () => {
+  it('취소 시그널이 켜지면 신규 투입을 멈추고 수집된 결과는 유지한다(목록 전체 미처리)', async () => {
     const signal = { cancelled: false };
+    const rows = Array.from({ length: 20 }, (_, i) => String(i + 1));
     const ports = makePorts({
-      collectList: vi.fn(async () => list(['1', '2', '3'])),
+      collectList: vi.fn(async () => list(rows)),
       parsePopup: vi.fn(async (): Promise<ScreeningPopupResult> => {
-        signal.cancelled = true; // 첫 상품 처리 직후 취소
+        signal.cancelled = true; // 처리되는 즉시 취소
         return { status: 'ok', product: PRODUCT };
       }),
     });
@@ -96,7 +120,9 @@ describe('runScan', () => {
     const summary = await runScan(ports, RULES, {}, signal);
 
     expect(summary.phase).toBe('cancelled');
-    expect(summary.results).toHaveLength(1);
+    // 진행 중이던 첫 배치(최대 SCAN_CONCURRENCY)는 끝나지만, 나머지 큐는 버린다.
+    expect(summary.results.length).toBeGreaterThanOrEqual(1);
+    expect(summary.results.length).toBeLessThanOrEqual(SCAN_CONCURRENCY);
   });
 
   it('그리드를 못 찾으면 collect-failed', async () => {

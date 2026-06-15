@@ -36,3 +36,16 @@ export type ScreeningPopupResult =
   | { status: 'ok'; product: ParsedScreeningProduct }
   | { status: 'not-rendered' }
   | { status: 'login-redirect' };
+
+// 수정 심사 팝업의 변경 1건. before/after는 텍스트 비교(이미지 변경은 '(이미지)' 플레이스홀더).
+export type ScreeningChange = {
+  section: string;
+  label: string;
+  before: string;
+  after: string;
+};
+
+// 팝업 파싱 결과의 판별 유니온 — 팝업 구조가 종류를 self-describing 한다.
+export type ParsedScreening =
+  | { kind: 'register'; product: ParsedScreeningProduct }
+  | { kind: 'modify'; changes: ScreeningChange[] };

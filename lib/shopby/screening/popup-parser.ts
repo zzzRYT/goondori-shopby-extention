@@ -1,6 +1,7 @@
 import {
   SCREENING_SECTIONS,
   type ParsedScreeningProduct,
+  type ScreeningChange,
   type ScreeningImages,
   type ScreeningPopupResult,
 } from './types';
@@ -62,6 +63,45 @@ function collectImages(label: string, cell: Element, images: ScreeningImages) {
     .map((img) => img.getAttribute('src') ?? '')
     .filter(Boolean);
   images[bucket].push(...srcs);
+}
+
+const CHANGE_HEADER_RE = /변경 전|변경 후/;
+
+// 수정 심사 팝업: '변경 전/후' 헤더를 가진 섹션 테이블만 골라 행별 diff를 만든다.
+// 그런 테이블이 하나도 없으면(등록 팝업이거나 렌더 전) null — 폴링이 계속된다.
+export function parseScreeningChanges(doc: Document): ScreeningChange[] | null {
+  const changes: ScreeningChange[] = [];
+
+  for (const titleEl of doc.querySelectorAll(SECTION_TITLE_SELECTOR)) {
+    const table = titleEl.parentElement?.querySelector('table');
+    if (!table || !hasChangeHeader(table)) continue;
+
+    const section = normalize(titleEl.textContent);
+    for (const row of table.querySelectorAll('tr')) {
+      const cells = row.querySelectorAll('td');
+      if (cells.length < 3) continue; // th 헤더 행/비-diff 행 스킵
+      const label = normalize(cells[0].textContent);
+      if (!label) continue;
+      changes.push({ section, label, before: cellText(cells[1]), after: cellText(cells[2]) });
+    }
+  }
+
+  return changes.length > 0 ? changes : null;
+}
+
+function hasChangeHeader(table: Element): boolean {
+  for (const th of table.querySelectorAll('th')) {
+    if (CHANGE_HEADER_RE.test(normalize(th.textContent))) return true;
+  }
+  return false;
+}
+
+// 텍스트가 비고 이미지가 있으면 '(이미지)' — 이미지 변경을 침묵 누락하지 않되,
+// v1은 텍스트 비교라 어떤 이미지로 바뀌었는지까진 표현하지 않는다(알려진 한계).
+function cellText(cell: Element): string {
+  const text = normalize(cell.textContent);
+  if (text) return text;
+  return cell.querySelector('img') ? '(이미지)' : '';
 }
 
 export type WaitOptions = { timeoutMs?: number; pollMs?: number };

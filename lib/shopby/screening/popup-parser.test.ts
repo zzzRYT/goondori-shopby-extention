@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { parseScreeningDocument, waitForScreeningParse } from './popup-parser';
+import { parseScreeningChanges, parseScreeningDocument, waitForScreeningParse } from './popup-parser';
 
 function loadFixture(name: string): Document {
   const html = readFileSync(resolve(process.cwd(), 'tests/fixtures', name), 'utf-8');
@@ -103,5 +103,49 @@ describe('waitForScreeningParse', () => {
     const result = await waitForScreeningParse(doc, { timeoutMs: 50, pollMs: 10 });
 
     expect(result.status).toBe('not-rendered');
+  });
+});
+
+describe('parseScreeningChanges (admin-screening-popup-modify.html 픽스처)', () => {
+  it('변경 전/후 헤더 테이블의 행을 diff로 파싱한다', () => {
+    const doc = loadFixture('admin-screening-popup-modify.html');
+
+    const changes = parseScreeningChanges(doc);
+
+    expect(changes).not.toBeNull();
+    expect(changes).toContainEqual({ section: '판매정보', label: '즉시할인', before: '15,000원', after: '20,000원' });
+    expect(changes).toContainEqual({ section: '판매정보', label: '즉시할인가', before: '24,900원', after: '19,900원' });
+  });
+
+  it('이미지 변경 행은 텍스트가 없어 (이미지) 플레이스홀더로 남긴다 (침묵 누락 금지)', () => {
+    const doc = loadFixture('admin-screening-popup-modify.html');
+
+    const changes = parseScreeningChanges(doc);
+
+    expect(changes).toContainEqual({ section: '이미지정보', label: '상품이미지', before: '(이미지)', after: '(이미지)' });
+  });
+
+  it('별도 승인거부 의견(변경 전/후 헤더 없음) 행은 제외한다', () => {
+    const doc = loadFixture('admin-screening-popup-modify.html');
+
+    const changes = parseScreeningChanges(doc);
+
+    expect(changes!.some((c) => c.label === '수정필요')).toBe(false);
+  });
+
+  it('등록 팝업(변경 전/후 헤더 없음)은 null', () => {
+    const doc = loadFixture('admin-screening-popup.html');
+
+    expect(parseScreeningChanges(doc)).toBeNull();
+  });
+
+  it('변경 전/후 헤더만 있고 데이터 행이 없으면 null (렌더 미완료)', () => {
+    const html = `<html><body><div>
+      <div class="Layout_view-title__x">판매정보</div>
+      <table><tr><th>항목</th><th>변경 전 등록정보</th><th>변경 후 등록정보</th></tr></table>
+    </div></body></html>`;
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+
+    expect(parseScreeningChanges(doc)).toBeNull();
   });
 });

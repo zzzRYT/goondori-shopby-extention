@@ -47,24 +47,26 @@ describe('RuleSettings', () => {
     render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: '기본 큐레이션' })).toBeInTheDocument();
-    expect(screen.getByText('브랜드 검수')).toBeInTheDocument();
-    expect(screen.getByText('상세 상단/하단 이미지 금지')).toBeInTheDocument();
-    expect(screen.getByText('검색어 입력 확인')).toBeInTheDocument();
-    expect(screen.getByText('서비스 상품 금지(배송상품만)')).toBeInTheDocument();
-    expect(screen.getByText('쇼핑몰 배송 금지')).toBeInTheDocument();
-    expect(screen.getByText('쇼핑몰 자체 상품 금지')).toBeInTheDocument();
+    expect(screen.getByText('역마진 경고')).toBeInTheDocument();
+    expect(screen.getByText('수수료 0% 경고')).toBeInTheDocument();
+    expect(screen.getByText('할인율 이상치(70% 이상)')).toBeInTheDocument();
+    expect(screen.getByText('대표이미지 누락')).toBeInTheDocument();
+    expect(screen.getByText('상품명 글자수 초과(30자)')).toBeInTheDocument();
+    expect(screen.getByText('서비스상품군 방지')).toBeInTheDocument();
+    expect(screen.getByText('재고 0개 경고')).toBeInTheDocument();
+    expect(screen.getByText('전시카테고리 중복(1개 초과)')).toBeInTheDocument();
   });
 
   it('큐레이션 규칙은 삭제 버튼이 없고 토글만 가능하다', async () => {
     const onChange = vi.fn();
     render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={onChange} />);
 
-    expect(screen.queryByRole('button', { name: /규칙 삭제: 기본정보 · 브랜드/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /규칙 삭제: 역마진 경고/ })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /브랜드 검수/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /역마진 경고/ }));
 
     const next = onChange.mock.calls[0][0] as Rule[];
-    expect(next.find((rule) => rule.id === 'curation-brand')?.enabled).toBe(false);
+    expect(next.find((rule) => rule.id === 'curation-reverse-margin')?.enabled).toBe(false);
     expect(next).toHaveLength(CURATION_RULES.length + RULES.length);
   });
 

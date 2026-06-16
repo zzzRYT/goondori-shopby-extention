@@ -105,4 +105,38 @@ describe('RuleSettings', () => {
 
     expect(screen.getByText(/기본정보 · 영문상품명 글자수 상한 50자/)).toBeInTheDocument();
   });
+
+  it('계산 검사(derived) 규칙 - maxLength 타입을 추가할 수 있다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[]} onChange={onChange} />);
+
+    // 검사 유형을 '계산 검사'로 선택
+    await userEvent.selectOptions(screen.getByLabelText('검사 유형'), 'derived');
+
+    // kind 드롭다운에서 '글자수 상한'을 선택
+    await userEvent.selectOptions(screen.getByLabelText('계산 검사'), 'maxLength');
+
+    // threshold 입력
+    const thresholdInput = screen.getByLabelText('상한값');
+    await userEvent.clear(thresholdInput);
+    await userEvent.type(thresholdInput, '40');
+
+    // section을 기본정보로 유지하고 field를 첫 번째 기본값인 '쇼핑몰'로 유지
+    // (이미 기본값이 설정되어 있음)
+
+    // 규칙 추가 버튼 클릭
+    await userEvent.click(screen.getByRole('button', { name: '규칙 추가' }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const added = onChange.mock.calls[0][0][0];
+    expect(added).toMatchObject({
+      type: 'derived',
+      kind: 'maxLength',
+      threshold: 40,
+      section: '기본정보',
+      field: '쇼핑몰',
+      enabled: true,
+    });
+    expect(added.id).toBeDefined();
+  });
 });

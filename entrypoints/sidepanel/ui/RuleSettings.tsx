@@ -139,6 +139,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
   const [op, setOp] = useState<RuleOp>('equals');
   const [value, setValue] = useState('');
   const [kind, setKind] = useState<ImageRuleKind>('mainRequired');
+  const [derivedKind, setDerivedKind] = useState<DerivedRuleKind>('reverseMargin');
   const [threshold, setThreshold] = useState('1');
 
   function pickSection(next: CatalogSection) {
@@ -154,6 +155,16 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
       onAdd({ id, type: 'empty', section, field, enabled: true });
     } else if (type === 'expected') {
       onAdd({ id, type: 'expected', section, field, op, value, enabled: true });
+    } else if (type === 'derived') {
+      onAdd({
+        id,
+        type: 'derived',
+        kind: derivedKind,
+        threshold: derivedKind === 'reverseMargin' ? undefined : Number(threshold) || undefined,
+        section: derivedKind === 'maxLength' ? section : undefined,
+        field: derivedKind === 'maxLength' ? field : undefined,
+        enabled: true,
+      });
     } else {
       onAdd({
         id,
@@ -173,11 +184,12 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
           <option value="required">필수값</option>
           <option value="empty">공란</option>
           <option value="expected">기대값</option>
+          <option value="derived">계산 검사</option>
           <option value="image">이미지</option>
         </select>
       </label>
 
-      {type !== 'image' && (
+      {type !== 'image' && (type !== 'derived' || (type === 'derived' && derivedKind === 'maxLength')) && (
         <>
           <label>
             섹션
@@ -212,6 +224,29 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
             기대값
             <input value={value} onChange={(event) => setValue(event.target.value)} placeholder="예: 15%" />
           </label>
+        </>
+      )}
+
+      {type === 'derived' && (
+        <>
+          <label>
+            계산 검사
+            <select value={derivedKind} onChange={(event) => setDerivedKind(event.target.value as DerivedRuleKind)}>
+              {(Object.keys(DERIVED_KIND_LABELS) as DerivedRuleKind[]).map((name) => (
+                <option key={name} value={name}>{DERIVED_KIND_LABELS[name]}</option>
+              ))}
+            </select>
+          </label>
+          {derivedKind !== 'reverseMargin' && (
+            <label>
+              상한값
+              <input
+                type="number"
+                value={threshold}
+                onChange={(event) => setThreshold(event.target.value)}
+              />
+            </label>
+          )}
         </>
       )}
 

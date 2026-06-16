@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CURATION_META, CURATION_THRESHOLD_UNITS, curationThresholdDefault, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
 import { FIELD_CATALOG, type CatalogSection } from '../../../lib/shopby/screening/field-catalog';
+import { formatThousands } from '../../../lib/shopby/screening/rules';
 import type { DerivedRuleKind, ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
 
 type Props = { rules: Rule[]; onChange: (rules: Rule[]) => void };
@@ -28,6 +29,8 @@ const DERIVED_KIND_LABELS: Record<DerivedRuleKind, string> = {
   discountRateMax: '할인율 상한',
   displayCategoryMax: '전시카테고리 개수 상한',
   maxLength: '글자수 상한',
+  saleEndImminent: '판매 종료 임박',
+  priceCeiling: '가격 상한',
 };
 
 export function describeRule(rule: Rule): string {
@@ -49,6 +52,12 @@ export function describeRule(rule: Rule): string {
     }
     if (rule.kind === 'displayCategoryMax') {
       return `${kindLabel} ${rule.threshold ?? 1}개`;
+    }
+    if (rule.kind === 'saleEndImminent') {
+      return `${kindLabel} ${rule.threshold ?? 5}일 이내`;
+    }
+    if (rule.kind === 'priceCeiling') {
+      return `${kindLabel} ${formatThousands(rule.threshold ?? 1_000_000)}원 초과`;
     }
     return kindLabel; // reverseMargin
   }

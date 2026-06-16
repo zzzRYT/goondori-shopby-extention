@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, imageHost, parseNumeric, type Rule } from './rules';
+import { daysUntil, evaluate, imageHost, parseNumeric, parseSaleEndDate, type Rule } from './rules';
 import type { ParsedScreeningProduct } from './types';
 
 // 픽스처 파싱 결과의 축약형. 규칙 엔진은 파서 출력 형태만 알면 된다.
@@ -43,6 +43,30 @@ describe('parseNumeric', () => {
   it('숫자가 없으면 null', () => {
     expect(parseNumeric('')).toBeNull();
     expect(parseNumeric('상품상세참조')).toBeNull();
+  });
+});
+
+describe('parseSaleEndDate', () => {
+  it("'~' 뒤 종료일시를 읽는다", () => {
+    const end = parseSaleEndDate('상시 판매, 2026-06-10 00:00:00 ~ 2999-12-31 23:59:59');
+    expect(end).toEqual(new Date(2999, 11, 31, 23, 59, 59));
+  });
+
+  it('시각이 없어도 날짜만 읽는다', () => {
+    expect(parseSaleEndDate('2026-06-10 ~ 2026-06-18')).toEqual(new Date(2026, 5, 18));
+  });
+
+  it('날짜가 없으면 null', () => {
+    expect(parseSaleEndDate('상시 판매')).toBeNull();
+  });
+});
+
+describe('daysUntil', () => {
+  it('시각과 무관하게 캘린더 날짜 차이(일)를 센다', () => {
+    const now = new Date(2026, 5, 16, 10, 0, 0);
+    expect(daysUntil(now, new Date(2026, 5, 18, 23, 59, 59))).toBe(2);
+    expect(daysUntil(now, new Date(2026, 5, 16, 0, 0, 0))).toBe(0);
+    expect(daysUntil(now, new Date(2026, 5, 10, 23, 59, 59))).toBe(-6);
   });
 });
 

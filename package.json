@@ -2,7 +2,7 @@
   "name": "goondori-shopby-extension",
   "description": "Shopby display and banner helper extension for Goondori MD workflows",
   "private": true,
-  "version": "0.0.4",
+  "version": "0.0.6",
   "packageManager": "pnpm@10.15.0",
   "type": "module",
   "scripts": {

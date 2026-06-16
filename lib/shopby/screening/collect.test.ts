@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { collectScreeningList } from './collect';
 import { findPageSizeSelect } from './list-harvest';
 
@@ -56,4 +56,76 @@ describe('collectScreeningList', () => {
 
     expect(result).toEqual({ status: 'no-grid', rows: [], totalCount: null, pagesVisited: 0 });
   });
+
+  it('현재 2페이지에서 시작해도 1페이지로 되돌린 뒤 전체를 수집한다', async () => {
+    // jsdom엔 실제 페이지 전환이 없으므로 first/2 컨트롤에 핸들러를 붙여 SPA 재렌더(행 교체 +
+    // tui-is-selected 텍스트 변경)를 흉내낸다. 시작은 2페이지 — 리셋이 없으면 101/102가 누락된다.
+    mountGridOnPage2(document);
+
+    const result = await collectScreeningList(document, FAST);
+
+    const productNos = result.rows.map((row) => row.productNo).sort();
+    // 1페이지(101,102)가 결과에 포함됐다는 것 자체가 "1페이지로 되돌린 뒤 수집"의 증거
+    expect(productNos).toEqual(['101', '102', '201', '202']);
+  });
+
+  it('이미 1페이지면 first 컨트롤을 클릭하지 않는다(no-op)', async () => {
+    document.body.innerHTML =
+      '<div data-cy="grid"><table><tbody>' +
+      '<tr><td data-column-name="productNo" data-row-key="0">301</td>' +
+      '<td data-column-name="productName" data-row-key="0">상품301</td></tr>' +
+      '</tbody></table></div>' +
+      '<div class="tui-pagination">' +
+      '<a href="#" class="tui-page-btn tui-is-disabled tui-first"><span>first</span></a>' +
+      '<strong class="tui-page-btn tui-is-selected">1</strong>' +
+      '<span class="tui-page-btn tui-is-disabled tui-next"><span>next</span></span>' +
+      '</div>';
+    const first = document.querySelector<HTMLElement>('a.tui-first')!;
+    const clickSpy = vi.spyOn(first, 'click');
+
+    const result = await collectScreeningList(document, FAST);
+
+    expect(clickSpy).not.toHaveBeenCalled(); // 비활성 first는 건드리지 않는다
+    expect(result.rows.map((row) => row.productNo)).toContain('301');
+    expect(result.pagesVisited).toBe(1);
+  });
 });
+
+// 그리드(2페이지 표시) + 페이저를 합성한다. first 클릭 → 1페이지 행/선택페이지로,
+// "2" 클릭 → 2페이지 행/선택페이지로 교체해 어드민 SPA의 페이지 전환을 흉내낸다.
+function mountGridOnPage2(doc: Document): void {
+  const page1 = [
+    { no: '101', name: '상품101' },
+    { no: '102', name: '상품102' },
+  ];
+  const page2 = [
+    { no: '201', name: '상품201' },
+    { no: '202', name: '상품202' },
+  ];
+  const cells = (rows: { no: string; name: string }[]) =>
+    rows
+      .map(
+        (row, i) =>
+          `<tr><td data-column-name="productNo" data-row-key="${i}">${row.no}</td>` +
+          `<td data-column-name="productName" data-row-key="${i}">${row.name}</td></tr>`,
+      )
+      .join('');
+
+  doc.body.innerHTML =
+    `<div data-cy="grid"><table><tbody id="rows">${cells(page2)}</tbody></table></div>` +
+    '<div class="tui-pagination">' +
+    '<a href="#" class="tui-page-btn tui-first"><span>first</span></a>' +
+    '<a href="#" class="tui-page-btn" id="p1">1</a>' +
+    '<strong class="tui-page-btn tui-is-selected" id="sel">2</strong>' +
+    '<a href="#" class="tui-page-btn" id="p2">2</a>' +
+    '<span class="tui-page-btn tui-is-disabled tui-next"><span>next</span></span>' +
+    '</div>';
+
+  const show = (rows: { no: string; name: string }[], page: string) => (event: Event) => {
+    event.preventDefault();
+    doc.getElementById('rows')!.innerHTML = cells(rows);
+    doc.getElementById('sel')!.textContent = page;
+  };
+  doc.querySelector<HTMLElement>('a.tui-first')!.addEventListener('click', show(page1, '1'));
+  doc.getElementById('p2')!.addEventListener('click', show(page2, '2'));
+}

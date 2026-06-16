@@ -1,6 +1,6 @@
 import { findNextPageControl, readSelectedPage } from '../brand-editor-open';
 import { setFieldValue } from '../fill';
-import { BRAND_PAGINATION_SELECTOR } from '../selectors';
+import { BRAND_PAGE_FIRST_SELECTOR, BRAND_PAGINATION_SELECTOR } from '../selectors';
 import {
   findPageSizeSelect,
   findScreeningGrid,
@@ -36,6 +36,7 @@ export async function collectScreeningList(
   }
 
   await switchPageSizeTo200(doc, opts);
+  await gotoFirstPage(doc, opts); // 현재 페이지가 어디든 1페이지부터 빠짐없이 수집
   const totalCount = readTotalCount(doc);
 
   const collected = new Map<string, ScreeningRow>();
@@ -67,6 +68,21 @@ async function switchPageSizeTo200(doc: Document, opts: Required<CollectOptions>
 
   setFieldValue(select, '200'); // React select라 native setter + change 이벤트 필요
   await sleep(opts.waitMs); // 리로드 시작 여유 — 이후 waitForRowsSettled가 안정화를 기다린다
+}
+
+// 스캔 시작 시 현재 페이지가 어디든 1페이지로 되돌린다 — 1→끝까지 빠짐없이 수집하기 위함.
+// 이미 1페이지면 first 컨트롤이 비활성(span)이라 셀렉터에서 빠져 no-op.
+// best-effort: 전환 실패해도 throw하지 않고 현재 위치에서 진행(기존 동작으로 graceful degrade).
+async function gotoFirstPage(doc: Document, opts: Required<CollectOptions>) {
+  const pager = doc.querySelector(BRAND_PAGINATION_SELECTOR);
+  if (!pager) return;
+
+  const first = pager.querySelector<HTMLElement>(BRAND_PAGE_FIRST_SELECTOR);
+  if (!first || first.classList.contains('tui-is-disabled')) return;
+
+  const before = readSelectedPage(pager);
+  first.click();
+  await waitForPageChange(doc, before, opts);
 }
 
 // 행 구성(상품번호 시그니처)이 settleTicks 연속 동일해질 때까지 폴링.

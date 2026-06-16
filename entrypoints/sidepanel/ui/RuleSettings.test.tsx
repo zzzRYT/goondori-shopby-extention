@@ -94,4 +94,13 @@ describe('RuleSettings', () => {
     const added = onChange.mock.calls[0][0][0];
     expect(added).toMatchObject({ type: 'empty', section: '기본정보', field: '검색어', enabled: true });
   });
+
+  it('derived 규칙을 추가 규칙 목록에서 사람이 읽을 수 있게 표시한다', () => {
+    const rules: Rule[] = [
+      { id: 'rule-1', type: 'derived', kind: 'maxLength', section: '기본정보', field: '영문상품명', threshold: 50, enabled: true },
+    ];
+    render(<RuleSettings rules={rules} onChange={vi.fn()} />);
+
+    expect(screen.getByText(/기본정보 · 영문상품명 글자수 상한 50자/)).toBeInTheDocument();
+  });
 });

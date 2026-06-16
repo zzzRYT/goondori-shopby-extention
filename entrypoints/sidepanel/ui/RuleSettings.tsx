@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { CURATION_META, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
+import { CURATION_META, CURATION_THRESHOLD_UNITS, curationThresholdDefault, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
 import { FIELD_CATALOG, type CatalogSection } from '../../../lib/shopby/screening/field-catalog';
-import type { ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
+import { formatThousands } from '../../../lib/shopby/screening/rules';
+import type { DerivedRuleKind, ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
 
 type Props = { rules: Rule[]; onChange: (rules: Rule[]) => void };
 
@@ -23,6 +24,15 @@ const IMAGE_KIND_LABELS: Record<ImageRuleKind, string> = {
   externalHost: '허용 외 이미지 호스트 경고',
 };
 
+const DERIVED_KIND_LABELS: Record<DerivedRuleKind, string> = {
+  reverseMargin: '역마진 검사',
+  discountRateMax: '할인율 상한',
+  displayCategoryMax: '전시카테고리 개수 상한',
+  maxLength: '글자수 상한',
+  saleEndImminent: '판매 종료 임박',
+  priceCeiling: '가격 상한',
+};
+
 export function describeRule(rule: Rule): string {
   if (rule.type === 'required') return `${rule.section} · ${rule.field} 필수`;
   if (rule.type === 'empty') return `${rule.section} · ${rule.field} 공란`;
@@ -30,9 +40,33 @@ export function describeRule(rule: Rule): string {
     const op = OP_OPTIONS.find((option) => option.value === rule.op)?.label ?? rule.op;
     return `${rule.section} · ${rule.field} ${op} ${rule.value}`;
   }
-  return rule.kind === 'detailMin'
-    ? `${IMAGE_KIND_LABELS[rule.kind]} ${rule.threshold ?? 1}장`
-    : IMAGE_KIND_LABELS[rule.kind];
+  if (rule.type === 'derived') {
+    const kindLabel = DERIVED_KIND_LABELS[rule.kind];
+    if (rule.kind === 'maxLength') {
+      const section = rule.section ?? '기본정보';
+      const field = rule.field ?? '상품명';
+      return `${section} · ${field} ${kindLabel} ${rule.threshold ?? 30}자`;
+    }
+    if (rule.kind === 'discountRateMax') {
+      return `${kindLabel} ${rule.threshold ?? 70}%`;
+    }
+    if (rule.kind === 'displayCategoryMax') {
+      return `${kindLabel} ${rule.threshold ?? 1}개`;
+    }
+    if (rule.kind === 'saleEndImminent') {
+      return `${kindLabel} ${rule.threshold ?? 5}일 이내`;
+    }
+    if (rule.kind === 'priceCeiling') {
+      return `${kindLabel} ${formatThousands(rule.threshold ?? 1_000_000)}원 초과`;
+    }
+    return kindLabel; // reverseMargin
+  }
+  if (rule.type === 'image') {
+    return rule.kind === 'detailMin'
+      ? `${IMAGE_KIND_LABELS[rule.kind]} ${rule.threshold ?? 1}장`
+      : IMAGE_KIND_LABELS[rule.kind];
+  }
+  return '';
 }
 
 export function RuleSettings({ rules, onChange }: Props) {
@@ -41,6 +75,12 @@ export function RuleSettings({ rules, onChange }: Props) {
 
   function toggle(id: string, enabled: boolean) {
     onChange(rules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)));
+  }
+
+  function setThreshold(id: string, raw: string) {
+    const value = raw === '' ? undefined : Number(raw);
+    const next = value !== undefined && Number.isFinite(value) ? value : undefined;
+    onChange(rules.map((rule) => (rule.id === id && rule.type === 'derived' ? { ...rule, threshold: next } : rule)));
   }
 
   function remove(id: string) {
@@ -68,6 +108,19 @@ export function RuleSettings({ rules, onChange }: Props) {
                       <small className="rule-settings__note">{meta.note}</small>
                     </span>
                   </label>
+                  {CURATION_THRESHOLD_UNITS[rule.id] && rule.type === 'derived' && (
+                    <span className="rule-settings__threshold">
+                      <input
+                        type="number"
+                        min="1"
+                        value={rule.threshold ?? ''}
+                        placeholder={String(curationThresholdDefault(rule.id) ?? '')}
+                        onChange={(event) => setThreshold(rule.id, event.target.value)}
+                        aria-label={`${meta.title} 기준값`}
+                      />
+                      {CURATION_THRESHOLD_UNITS[rule.id]}
+                    </span>
+                  )}
                 </li>
               );
             })}
@@ -114,6 +167,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
   const [op, setOp] = useState<RuleOp>('equals');
   const [value, setValue] = useState('');
   const [kind, setKind] = useState<ImageRuleKind>('mainRequired');
+  const [derivedKind, setDerivedKind] = useState<DerivedRuleKind>('reverseMargin');
   const [threshold, setThreshold] = useState('1');
 
   function pickSection(next: CatalogSection) {
@@ -129,6 +183,16 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
       onAdd({ id, type: 'empty', section, field, enabled: true });
     } else if (type === 'expected') {
       onAdd({ id, type: 'expected', section, field, op, value, enabled: true });
+    } else if (type === 'derived') {
+      onAdd({
+        id,
+        type: 'derived',
+        kind: derivedKind,
+        threshold: derivedKind === 'reverseMargin' ? undefined : Number(threshold) || undefined,
+        section: derivedKind === 'maxLength' ? section : undefined,
+        field: derivedKind === 'maxLength' ? field : undefined,
+        enabled: true,
+      });
     } else {
       onAdd({
         id,
@@ -148,11 +212,12 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
           <option value="required">필수값</option>
           <option value="empty">공란</option>
           <option value="expected">기대값</option>
+          <option value="derived">계산 검사</option>
           <option value="image">이미지</option>
         </select>
       </label>
 
-      {type !== 'image' && (
+      {type !== 'image' && (type !== 'derived' || (type === 'derived' && derivedKind === 'maxLength')) && (
         <>
           <label>
             섹션
@@ -187,6 +252,29 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
             기대값
             <input value={value} onChange={(event) => setValue(event.target.value)} placeholder="예: 15%" />
           </label>
+        </>
+      )}
+
+      {type === 'derived' && (
+        <>
+          <label>
+            계산 검사
+            <select value={derivedKind} onChange={(event) => setDerivedKind(event.target.value as DerivedRuleKind)}>
+              {(Object.keys(DERIVED_KIND_LABELS) as DerivedRuleKind[]).map((name) => (
+                <option key={name} value={name}>{DERIVED_KIND_LABELS[name]}</option>
+              ))}
+            </select>
+          </label>
+          {derivedKind !== 'reverseMargin' && (
+            <label>
+              상한값
+              <input
+                type="number"
+                value={threshold}
+                onChange={(event) => setThreshold(event.target.value)}
+              />
+            </label>
+          )}
         </>
       )}
 

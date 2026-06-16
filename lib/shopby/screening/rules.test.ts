@@ -1,13 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { evaluate, imageHost, parseNumeric, type Rule } from './rules';
+import { daysUntil, evaluate, imageHost, parseNumeric, parseSaleEndDate, type Rule } from './rules';
 import type { ParsedScreeningProduct } from './types';
 
 // 픽스처 파싱 결과의 축약형. 규칙 엔진은 파서 출력 형태만 알면 된다.
 function product(overrides?: Partial<ParsedScreeningProduct>): ParsedScreeningProduct {
   return {
     fields: {
-      기본정보: { 상품명: '[디라이프] 쿡 웨어 IH 3종 냄비세트', 제조사명: '', 브랜드: '디라이프' },
-      판매정보: { 판매수수료: '상품수수료, 15%', 판매가: '140,000원' },
+      기본정보: { 상품명: '[디라이프] 쿡 웨어 IH 3종 냄비세트', 제조사명: '', 브랜드: '디라이프', 전시카테고리: '테크가전' },
+      판매정보: {
+        판매수수료: '상품수수료, 15%',
+        판매가: '140,000원',
+        즉시할인: '104,700원',
+        즉시할인가: '35,300원',
+        공급가: '30,005원',
+        재고수량: '1,000개',
+      },
       배송정보: { '상품 중량': '0kg', '반품/교환 배송비': '편도기준 4,500 원' },
     },
     images: {
@@ -36,6 +43,30 @@ describe('parseNumeric', () => {
   it('숫자가 없으면 null', () => {
     expect(parseNumeric('')).toBeNull();
     expect(parseNumeric('상품상세참조')).toBeNull();
+  });
+});
+
+describe('parseSaleEndDate', () => {
+  it("'~' 뒤 종료일시를 읽는다", () => {
+    const end = parseSaleEndDate('상시 판매, 2026-06-10 00:00:00 ~ 2999-12-31 23:59:59');
+    expect(end).toEqual(new Date(2999, 11, 31, 23, 59, 59));
+  });
+
+  it('시각이 없어도 날짜만 읽는다', () => {
+    expect(parseSaleEndDate('2026-06-10 ~ 2026-06-18')).toEqual(new Date(2026, 5, 18));
+  });
+
+  it('날짜가 없으면 null', () => {
+    expect(parseSaleEndDate('상시 판매')).toBeNull();
+  });
+});
+
+describe('daysUntil', () => {
+  it('시각과 무관하게 캘린더 날짜 차이(일)를 센다', () => {
+    const now = new Date(2026, 5, 16, 10, 0, 0);
+    expect(daysUntil(now, new Date(2026, 5, 18, 23, 59, 59))).toBe(2);
+    expect(daysUntil(now, new Date(2026, 5, 16, 0, 0, 0))).toBe(0);
+    expect(daysUntil(now, new Date(2026, 5, 10, 23, 59, 59))).toBe(-6);
   });
 });
 
@@ -201,5 +232,55 @@ describe('evaluate', () => {
     const rule: Rule = { id: 'r1', type: 'required', section: '기본정보', field: '제조사명', enabled: false };
 
     expect(evaluate(product(), [rule])).toEqual([]);
+  });
+
+  describe('derived', () => {
+    it('reverseMargin: 공급가 ≤ 실판매가면 통과', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'reverseMargin', enabled: true };
+      expect(evaluate(product(), [rule])).toEqual([]);
+    });
+
+    it('reverseMargin: 공급가 > 실판매가면 위반', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'reverseMargin', enabled: true };
+      const base = product();
+      const p = product({ fields: { ...base.fields, 판매정보: { ...base.fields.판매정보, 공급가: '50,000원' } } });
+      const violations = evaluate(p, [rule]);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].message).toContain('역마진');
+    });
+
+    it('discountRateMax: 할인율이 threshold 이상이면 위반(140,000→35,300 ≈ 74.8%)', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'discountRateMax', threshold: 70, enabled: true };
+      const violations = evaluate(product(), [rule]);
+      expect(violations).toHaveLength(1);
+      expect(violations[0].actual).toContain('74.8%');
+    });
+
+    it('discountRateMax: threshold 미만이면 통과', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'discountRateMax', threshold: 80, enabled: true };
+      expect(evaluate(product(), [rule])).toEqual([]);
+    });
+
+    it('displayCategoryMax: 1개면 통과, 2개 이상이면 위반', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'displayCategoryMax', threshold: 1, enabled: true };
+      expect(evaluate(product(), [rule])).toEqual([]);
+      const base = product();
+      const multi = product({ fields: { ...base.fields, 기본정보: { ...base.fields.기본정보, 전시카테고리: '테크가전, 리빙' } } });
+      expect(evaluate(multi, [rule])).toHaveLength(1);
+    });
+
+    it('maxLength: threshold 초과면 위반', () => {
+      const short: Rule = { id: 'd1', type: 'derived', kind: 'maxLength', section: '기본정보', field: '상품명', threshold: 30, enabled: true };
+      const long: Rule = { id: 'd2', type: 'derived', kind: 'maxLength', section: '기본정보', field: '상품명', threshold: 10, enabled: true };
+      expect(evaluate(product(), [short])).toEqual([]);
+      expect(evaluate(product(), [long])).toHaveLength(1);
+    });
+
+    it('derived: 대상 항목이 없으면 조용히 통과시키지 않고 위반으로 표면화', () => {
+      const rule: Rule = { id: 'd1', type: 'derived', kind: 'displayCategoryMax', threshold: 1, enabled: true };
+      const base = product();
+      const p = product({ fields: { ...base.fields, 기본정보: {} } });
+      expect(evaluate(p, [rule])[0].message).toContain('항목을 찾지 못함');
+    });
   });
 });

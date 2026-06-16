@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CURATION_RULES } from '../../../lib/shopby/screening/curation-rules';
@@ -47,24 +47,26 @@ describe('RuleSettings', () => {
     render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: '기본 큐레이션' })).toBeInTheDocument();
-    expect(screen.getByText('브랜드 검수')).toBeInTheDocument();
-    expect(screen.getByText('상세 상단/하단 이미지 금지')).toBeInTheDocument();
-    expect(screen.getByText('검색어 입력 확인')).toBeInTheDocument();
-    expect(screen.getByText('서비스 상품 금지(배송상품만)')).toBeInTheDocument();
-    expect(screen.getByText('쇼핑몰 배송 금지')).toBeInTheDocument();
-    expect(screen.getByText('쇼핑몰 자체 상품 금지')).toBeInTheDocument();
+    expect(screen.getByText('역마진 경고')).toBeInTheDocument();
+    expect(screen.getByText('수수료 0% 경고')).toBeInTheDocument();
+    expect(screen.getByText('할인율 이상치')).toBeInTheDocument();
+    expect(screen.getByText('대표이미지 누락')).toBeInTheDocument();
+    expect(screen.getByText('상품명 글자수 초과')).toBeInTheDocument();
+    expect(screen.getByText('서비스상품군 방지')).toBeInTheDocument();
+    expect(screen.getByText('재고 0개 경고')).toBeInTheDocument();
+    expect(screen.getByText('전시카테고리 중복(1개 초과)')).toBeInTheDocument();
   });
 
   it('큐레이션 규칙은 삭제 버튼이 없고 토글만 가능하다', async () => {
     const onChange = vi.fn();
     render(<RuleSettings rules={[...CURATION_RULES, ...RULES]} onChange={onChange} />);
 
-    expect(screen.queryByRole('button', { name: /규칙 삭제: 기본정보 · 브랜드/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /규칙 삭제: 역마진 경고/ })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('checkbox', { name: /브랜드 검수/ }));
+    await userEvent.click(screen.getByRole('checkbox', { name: /역마진 경고/ }));
 
     const next = onChange.mock.calls[0][0] as Rule[];
-    expect(next.find((rule) => rule.id === 'curation-brand')?.enabled).toBe(false);
+    expect(next.find((rule) => rule.id === 'curation-reverse-margin')?.enabled).toBe(false);
     expect(next).toHaveLength(CURATION_RULES.length + RULES.length);
   });
 
@@ -93,5 +95,87 @@ describe('RuleSettings', () => {
 
     const added = onChange.mock.calls[0][0][0];
     expect(added).toMatchObject({ type: 'empty', section: '기본정보', field: '검색어', enabled: true });
+  });
+
+  it('derived 규칙을 추가 규칙 목록에서 사람이 읽을 수 있게 표시한다', () => {
+    const rules: Rule[] = [
+      { id: 'rule-1', type: 'derived', kind: 'maxLength', section: '기본정보', field: '영문상품명', threshold: 50, enabled: true },
+    ];
+    render(<RuleSettings rules={rules} onChange={vi.fn()} />);
+
+    expect(screen.getByText(/기본정보 · 영문상품명 글자수 상한 50자/)).toBeInTheDocument();
+  });
+
+  it('계산 검사(derived) 규칙 - maxLength 타입을 추가할 수 있다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[]} onChange={onChange} />);
+
+    // 검사 유형을 '계산 검사'로 선택
+    await userEvent.selectOptions(screen.getByLabelText('검사 유형'), 'derived');
+
+    // kind 드롭다운에서 '글자수 상한'을 선택
+    await userEvent.selectOptions(screen.getByLabelText('계산 검사'), 'maxLength');
+
+    // threshold 입력
+    const thresholdInput = screen.getByLabelText('상한값');
+    await userEvent.clear(thresholdInput);
+    await userEvent.type(thresholdInput, '40');
+
+    // section을 기본정보로 유지하고 field를 첫 번째 기본값인 '쇼핑몰'로 유지
+    // (이미 기본값이 설정되어 있음)
+
+    // 규칙 추가 버튼 클릭
+    await userEvent.click(screen.getByRole('button', { name: '규칙 추가' }));
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    const added = onChange.mock.calls[0][0][0];
+    expect(added).toMatchObject({
+      type: 'derived',
+      kind: 'maxLength',
+      threshold: 40,
+      section: '기본정보',
+      field: '쇼핑몰',
+      enabled: true,
+    });
+    expect(added.id).toBeDefined();
+  });
+
+  it('기본 큐레이션의 할인율 기준값을 편집하면 onChange로 threshold가 갱신된다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('할인율 이상치 기준값') as HTMLInputElement;
+    // 현재 값 70 확인
+    expect(input).toHaveValue(70);
+    // fireEvent for number input
+    fireEvent.change(input, { target: { value: '85' } });
+    // onChange가 threshold 85로 호출됨(마지막 호출 확인)
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-discount-rate')!;
+    expect((rule as { threshold?: number }).threshold).toBe(85);
+  });
+
+  it('기본 큐레이션 할인율 기준값을 비우면 onChange로 threshold undefined를 갱신한다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('할인율 이상치 기준값') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    // onChange가 threshold undefined로 호출됨
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-discount-rate')!;
+    expect((rule as { threshold?: number }).threshold).toBeUndefined();
+  });
+
+  it('기본 큐레이션 글자수 기준값을 편집하면 onChange로 threshold가 갱신된다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('상품명 글자수 초과 기준값') as HTMLInputElement;
+    // 현재 값 30 확인
+    expect(input).toHaveValue(30);
+    // fireEvent for number input
+    fireEvent.change(input, { target: { value: '45' } });
+    // onChange가 threshold 45로 호출됨
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-name-length')!;
+    expect((rule as { threshold?: number }).threshold).toBe(45);
   });
 });

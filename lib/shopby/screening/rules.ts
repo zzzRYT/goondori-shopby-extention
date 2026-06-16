@@ -44,7 +44,22 @@ export type ImageRule = {
   enabled: boolean;
 };
 
-export type Rule = RequiredRule | EmptyRule | ExpectedRule | ImageRule;
+export type DerivedRuleKind = 'reverseMargin' | 'discountRateMax' | 'displayCategoryMax' | 'maxLength';
+
+// 단일 필드 비교로 표현 못 하는 계산 검사(가격 교차비교·할인율·글자수·개수).
+// threshold: discountRateMax(기본 70)·displayCategoryMax(기본 1)·maxLength(기본 30)
+// section/field: maxLength에서만 사용(어떤 항목의 글자수를 볼지)
+export type DerivedRule = {
+  id: string;
+  type: 'derived';
+  kind: DerivedRuleKind;
+  threshold?: number;
+  section?: SectionName;
+  field?: string;
+  enabled: boolean;
+};
+
+export type Rule = RequiredRule | EmptyRule | ExpectedRule | ImageRule | DerivedRule;
 
 export type Violation = { ruleId: string; label: string; message: string; actual: string };
 
@@ -80,7 +95,10 @@ export function evaluate(product: ParsedScreeningProduct, rules: Rule[]): Violat
   const violations: Violation[] = [];
   for (const rule of rules) {
     if (!rule.enabled) continue;
-    const violation = rule.type === 'image' ? checkImage(product, rule) : checkField(product, rule);
+    const violation =
+      rule.type === 'image' ? checkImage(product, rule)
+      : rule.type === 'derived' ? checkDerived(product, rule)
+      : checkField(product, rule);
     if (violation) violations.push(violation);
   }
   return violations;
@@ -186,5 +204,74 @@ function checkImage(product: ParsedScreeningProduct, rule: ImageRule): Violation
   ];
   return offending.length
     ? v('이미지 · 호스트', '허용 외 이미지 호스트 사용', offending.join(', '))
+    : null;
+}
+
+function checkDerived(product: ParsedScreeningProduct, rule: DerivedRule): Violation | null {
+  const sales = product.fields['판매정보'] ?? {};
+  const basic = product.fields['기본정보'] ?? {};
+  const v = (label: string, message: string, actual: string): Violation => ({
+    ruleId: rule.id,
+    label,
+    message,
+    actual,
+  });
+
+  if (rule.kind === 'reverseMargin') {
+    // 실판매가 = 즉시할인가(고객 실결제가) 우선, 없으면 판매가. 공급가가 그보다 크면 역마진.
+    const supplyRaw = sales['공급가'];
+    const saleRaw = sales['즉시할인가'] || sales['판매가'];
+    const supply = parseNumeric(supplyRaw ?? '');
+    const sale = parseNumeric(saleRaw ?? '');
+    if (supply == null || sale == null) {
+      return v('판매정보 · 공급가', '역마진 비교 불가(가격 항목 없음)', '');
+    }
+    return supply > sale
+      ? v('판매정보 · 공급가', '역마진(공급가 > 판매가)', `공급가 ${supplyRaw} > 판매 ${saleRaw}`)
+      : null;
+  }
+
+  if (rule.kind === 'discountRateMax') {
+    const threshold = rule.threshold ?? 70;
+    const list = parseNumeric(sales['판매가'] ?? '');
+    if (list == null || list === 0) {
+      return v('판매정보 · 즉시할인', '할인율 계산 불가(판매가 없음)', sales['판매가'] ?? '');
+    }
+    // 할인율 = (판매가 - 즉시할인가)/판매가. 즉시할인가가 없으면 즉시할인(할인금액)/판매가. 둘 다 없으면 0%.
+    const finalPrice = parseNumeric(sales['즉시할인가'] ?? '');
+    const discountAmt = parseNumeric(sales['즉시할인'] ?? '');
+    const rate =
+      finalPrice != null ? ((list - finalPrice) / list) * 100
+      : discountAmt != null ? (discountAmt / list) * 100
+      : 0;
+    return rate >= threshold
+      ? v('판매정보 · 즉시할인', `할인율 ${threshold}% 이상`, `${rate.toFixed(1)}%`)
+      : null;
+  }
+
+  if (rule.kind === 'displayCategoryMax') {
+    const threshold = rule.threshold ?? 1;
+    const raw = basic['전시카테고리'];
+    if (raw === undefined) {
+      return v('기본정보 · 전시카테고리', '항목을 찾지 못함(화면 구조 변경 가능성)', '');
+    }
+    // 전시카테고리 다중 등록 구분자는 실측 샘플이 1개뿐이라 미확정 — 쉼표/줄바꿈으로 분리(추후 실제 멀티 샘플로 조정).
+    const count = raw.split(/[,\n]/).map((s) => s.trim()).filter(Boolean).length;
+    return count > threshold
+      ? v('기본정보 · 전시카테고리', `전시카테고리 ${threshold}개 초과`, `${count}개: ${raw}`)
+      : null;
+  }
+
+  // maxLength
+  const section = rule.section ?? '기본정보';
+  const field = rule.field ?? '상품명';
+  const threshold = rule.threshold ?? 30;
+  const value = product.fields[section]?.[field];
+  const label = `${section} · ${field}`;
+  if (value === undefined) {
+    return v(label, '항목을 찾지 못함(화면 구조 변경 가능성)', '');
+  }
+  return value.length > threshold
+    ? v(label, `글자수 ${threshold}자 초과`, `${value.length}자`)
     : null;
 }

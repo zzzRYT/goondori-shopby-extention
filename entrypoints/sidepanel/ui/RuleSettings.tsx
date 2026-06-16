@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CURATION_META, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
 import { FIELD_CATALOG, type CatalogSection } from '../../../lib/shopby/screening/field-catalog';
-import type { ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
+import type { DerivedRuleKind, ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
 
 type Props = { rules: Rule[]; onChange: (rules: Rule[]) => void };
 
@@ -23,6 +23,13 @@ const IMAGE_KIND_LABELS: Record<ImageRuleKind, string> = {
   externalHost: '허용 외 이미지 호스트 경고',
 };
 
+const DERIVED_KIND_LABELS: Record<DerivedRuleKind, string> = {
+  reverseMargin: '역마진 검사',
+  discountRateMax: '할인율 상한',
+  displayCategoryMax: '전시카테고리 개수 상한',
+  maxLength: '글자수 상한',
+};
+
 export function describeRule(rule: Rule): string {
   if (rule.type === 'required') return `${rule.section} · ${rule.field} 필수`;
   if (rule.type === 'empty') return `${rule.section} · ${rule.field} 공란`;
@@ -30,9 +37,27 @@ export function describeRule(rule: Rule): string {
     const op = OP_OPTIONS.find((option) => option.value === rule.op)?.label ?? rule.op;
     return `${rule.section} · ${rule.field} ${op} ${rule.value}`;
   }
-  return rule.kind === 'detailMin'
-    ? `${IMAGE_KIND_LABELS[rule.kind]} ${rule.threshold ?? 1}장`
-    : IMAGE_KIND_LABELS[rule.kind];
+  if (rule.type === 'derived') {
+    const kindLabel = DERIVED_KIND_LABELS[rule.kind];
+    if (rule.kind === 'maxLength') {
+      const section = rule.section ?? '기본정보';
+      const field = rule.field ?? '상품명';
+      return `${section} · ${field} ${kindLabel} ${rule.threshold ?? 30}자`;
+    }
+    if (rule.kind === 'discountRateMax') {
+      return `${kindLabel} ${rule.threshold ?? 70}%`;
+    }
+    if (rule.kind === 'displayCategoryMax') {
+      return `${kindLabel} ${rule.threshold ?? 1}개`;
+    }
+    return kindLabel; // reverseMargin
+  }
+  if (rule.type === 'image') {
+    return rule.kind === 'detailMin'
+      ? `${IMAGE_KIND_LABELS[rule.kind]} ${rule.threshold ?? 1}장`
+      : IMAGE_KIND_LABELS[rule.kind];
+  }
+  return '';
 }
 
 export function RuleSettings({ rules, onChange }: Props) {

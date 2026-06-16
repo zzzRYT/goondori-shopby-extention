@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CURATION_META, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
+import { CURATION_META, CURATION_THRESHOLD_UNITS, curationThresholdDefault, isCurationRule } from '../../../lib/shopby/screening/curation-rules';
 import { FIELD_CATALOG, type CatalogSection } from '../../../lib/shopby/screening/field-catalog';
 import type { DerivedRuleKind, ImageRuleKind, Rule, RuleOp } from '../../../lib/shopby/screening/rules';
 
@@ -68,6 +68,12 @@ export function RuleSettings({ rules, onChange }: Props) {
     onChange(rules.map((rule) => (rule.id === id ? { ...rule, enabled } : rule)));
   }
 
+  function setThreshold(id: string, raw: string) {
+    const value = raw === '' ? undefined : Number(raw);
+    const next = value !== undefined && Number.isFinite(value) ? value : undefined;
+    onChange(rules.map((rule) => (rule.id === id && rule.type === 'derived' ? { ...rule, threshold: next } : rule)));
+  }
+
   function remove(id: string) {
     onChange(rules.filter((rule) => rule.id !== id));
   }
@@ -93,6 +99,19 @@ export function RuleSettings({ rules, onChange }: Props) {
                       <small className="rule-settings__note">{meta.note}</small>
                     </span>
                   </label>
+                  {CURATION_THRESHOLD_UNITS[rule.id] && rule.type === 'derived' && (
+                    <span className="rule-settings__threshold">
+                      <input
+                        type="number"
+                        min="1"
+                        value={rule.threshold ?? ''}
+                        placeholder={String(curationThresholdDefault(rule.id) ?? '')}
+                        onChange={(event) => setThreshold(rule.id, event.target.value)}
+                        aria-label={`${meta.title} 기준값`}
+                      />
+                      {CURATION_THRESHOLD_UNITS[rule.id]}
+                    </span>
+                  )}
                 </li>
               );
             })}

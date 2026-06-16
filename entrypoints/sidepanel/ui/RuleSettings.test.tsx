@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CURATION_RULES } from '../../../lib/shopby/screening/curation-rules';
@@ -49,9 +49,9 @@ describe('RuleSettings', () => {
     expect(screen.getByRole('heading', { name: '기본 큐레이션' })).toBeInTheDocument();
     expect(screen.getByText('역마진 경고')).toBeInTheDocument();
     expect(screen.getByText('수수료 0% 경고')).toBeInTheDocument();
-    expect(screen.getByText('할인율 이상치(70% 이상)')).toBeInTheDocument();
+    expect(screen.getByText('할인율 이상치')).toBeInTheDocument();
     expect(screen.getByText('대표이미지 누락')).toBeInTheDocument();
-    expect(screen.getByText('상품명 글자수 초과(30자)')).toBeInTheDocument();
+    expect(screen.getByText('상품명 글자수 초과')).toBeInTheDocument();
     expect(screen.getByText('서비스상품군 방지')).toBeInTheDocument();
     expect(screen.getByText('재고 0개 경고')).toBeInTheDocument();
     expect(screen.getByText('전시카테고리 중복(1개 초과)')).toBeInTheDocument();
@@ -138,5 +138,44 @@ describe('RuleSettings', () => {
       enabled: true,
     });
     expect(added.id).toBeDefined();
+  });
+
+  it('기본 큐레이션의 할인율 기준값을 편집하면 onChange로 threshold가 갱신된다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('할인율 이상치 기준값') as HTMLInputElement;
+    // 현재 값 70 확인
+    expect(input).toHaveValue(70);
+    // fireEvent for number input
+    fireEvent.change(input, { target: { value: '85' } });
+    // onChange가 threshold 85로 호출됨(마지막 호출 확인)
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-discount-rate')!;
+    expect((rule as { threshold?: number }).threshold).toBe(85);
+  });
+
+  it('기본 큐레이션 할인율 기준값을 비우면 onChange로 threshold undefined를 갱신한다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('할인율 이상치 기준값') as HTMLInputElement;
+    fireEvent.change(input, { target: { value: '' } });
+    // onChange가 threshold undefined로 호출됨
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-discount-rate')!;
+    expect((rule as { threshold?: number }).threshold).toBeUndefined();
+  });
+
+  it('기본 큐레이션 글자수 기준값을 편집하면 onChange로 threshold가 갱신된다', async () => {
+    const onChange = vi.fn();
+    render(<RuleSettings rules={[...CURATION_RULES]} onChange={onChange} />);
+    const input = screen.getByLabelText('상품명 글자수 초과 기준값') as HTMLInputElement;
+    // 현재 값 30 확인
+    expect(input).toHaveValue(30);
+    // fireEvent for number input
+    fireEvent.change(input, { target: { value: '45' } });
+    // onChange가 threshold 45로 호출됨
+    const lastCallRules = onChange.mock.calls.at(-1)![0] as Rule[];
+    const rule = lastCallRules.find((r) => r.id === 'curation-name-length')!;
+    expect((rule as { threshold?: number }).threshold).toBe(45);
   });
 });

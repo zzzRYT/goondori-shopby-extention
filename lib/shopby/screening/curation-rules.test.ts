@@ -42,15 +42,30 @@ describe('mergeCurationRules', () => {
     expect(merged.slice(0, CURATION_RULES.length).map((r) => r.id)).toEqual(CURATION_RULES.map((r) => r.id));
   });
 
-  it('저장본의 enabled(끈 상태)는 보존하되 정의는 코드가 정답', () => {
-    const stale: Rule = { id: 'curation-discount-rate', type: 'derived', kind: 'discountRateMax', threshold: 50, enabled: false };
+  it('파생 규칙 threshold는 사용자 소유 — 저장본 값을 보존한다', () => {
+    const edited: Rule = { id: 'curation-discount-rate', type: 'derived', kind: 'discountRateMax', threshold: 85, enabled: true };
     const saved: Rule[] = CURATION_RULES.map((r) =>
-      r.id === 'curation-discount-rate' ? stale : r,
+      r.id === 'curation-discount-rate' ? edited : r,
     );
     const merged = mergeCurationRules(saved);
-    const fixed = merged.find((r) => r.id === 'curation-discount-rate')!;
-    expect(fixed.enabled).toBe(false);                 // 사용자가 끈 상태 보존
-    expect((fixed as { threshold?: number }).threshold).toBe(70); // 코드 정의(70)로 교정
+    const rule = merged.find((r) => r.id === 'curation-discount-rate')!;
+    expect((rule as { threshold?: number }).threshold).toBe(85); // 사용자 편집값 보존
+  });
+
+  it('파생 규칙 threshold가 저장본에 없으면(빈 값) 코드 기본값으로 채운다', () => {
+    const cleared: Rule = { id: 'curation-name-length', type: 'derived', kind: 'maxLength', section: '기본정보', field: '상품명', enabled: true };
+    const saved: Rule[] = CURATION_RULES.map((r) =>
+      r.id === 'curation-name-length' ? cleared : r,
+    );
+    const merged = mergeCurationRules(saved);
+    const rule = merged.find((r) => r.id === 'curation-name-length')!;
+    expect((rule as { threshold?: number }).threshold).toBe(30); // 코드 기본값
+  });
+
+  it('enabled(끈 상태)는 여전히 보존된다', () => {
+    const off: Rule = { ...CURATION_RULES[0], enabled: false } as Rule;
+    const merged = mergeCurationRules([off, ...CURATION_RULES.slice(1)]);
+    expect(merged[0].enabled).toBe(false);
   });
 
   it('비-큐레이션 규칙(시드·커스텀)은 큐레이션 뒤에 순서대로 유지된다', () => {

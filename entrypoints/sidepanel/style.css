@@ -1177,6 +1177,8 @@ textarea:focus-visible {
 .rule-settings__row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .rule-settings__toggle { display: flex; align-items: flex-start; gap: 6px; }
 .rule-settings__note { display: block; font-size: 11px; color: #98a2b3; }
+.rule-settings__threshold { display: inline-flex; align-items: center; gap: 4px; }
+.rule-settings__threshold input { width: 4rem; min-height: 32px; border: 1px solid #d0d5dd; border-radius: 4px; padding: 4px 6px; font-size: 12px; }
 .rule-settings__add { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 
 .screening-results__header { display: flex; align-items: center; justify-content: space-between; }

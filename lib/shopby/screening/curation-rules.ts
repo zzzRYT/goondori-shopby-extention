@@ -10,11 +10,8 @@ export const CURATION_RULES: Rule[] = [
   },
   {
     id: 'curation-zero-commission',
-    type: 'expected',
-    section: '판매정보',
-    field: '판매수수료',
-    op: 'gt',
-    value: '0',
+    type: 'derived',
+    kind: 'zeroCommission',
     enabled: true,
   },
   {
@@ -28,6 +25,12 @@ export const CURATION_RULES: Rule[] = [
     id: 'curation-main-image',
     type: 'image',
     kind: 'mainRequired',
+    enabled: true,
+  },
+  {
+    id: 'curation-detail-position',
+    type: 'image',
+    kind: 'detailPositionForbidden',
     enabled: true,
   },
   {
@@ -89,7 +92,7 @@ export const CURATION_META: Record<string, CurationMeta> = {
   },
   'curation-zero-commission': {
     title: '수수료 0% 경고',
-    note: '판매수수료가 0%면 위반',
+    note: '판매수수료가 0%이고 공급가도 비어 있으면 위반 — 공급가가 채워져 있으면(엑셀 업로드 등) 통과',
   },
   'curation-discount-rate': {
     title: '할인율 이상치',
@@ -98,6 +101,10 @@ export const CURATION_META: Record<string, CurationMeta> = {
   'curation-main-image': {
     title: '대표이미지 누락',
     note: '대표(썸네일) 이미지가 없으면 위반',
+  },
+  'curation-detail-position': {
+    title: '상세(상단/하단) 이미지 사용',
+    note: '상품 상세(상단)/(하단)에 이미지가 있으면 위반 — 앱에서 표현되지 않는 영역',
   },
   'curation-name-length': {
     title: '상품명 글자수 초과',

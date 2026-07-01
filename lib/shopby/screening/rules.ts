@@ -46,6 +46,7 @@ export type ImageRule = {
 
 export type DerivedRuleKind =
   | 'reverseMargin'
+  | 'zeroCommission'
   | 'discountRateMax'
   | 'displayCategoryMax'
   | 'maxLength'
@@ -262,6 +263,27 @@ function checkDerived(product: ParsedScreeningProduct, rule: DerivedRule, now: D
     return supply > sale
       ? v('판매정보 · 공급가', '역마진(공급가 > 판매가)', `공급가 ${supplyRaw} > 판매 ${saleRaw}`)
       : null;
+  }
+
+  if (rule.kind === 'zeroCommission') {
+    // 마진 근거 = 판매수수료(>0) 또는 공급가(>0). 샵바이는 공급가 방식으로 마진을 잡으면
+    // 공급가 필드가 채워지는데, 엑셀 업로드 등으로 판매수수료가 0으로 남고 공급가만 채워진
+    // 케이스가 있다. 수수료만 보면 오탐이 나므로 공급가도 함께 본다 — 둘 다 없을 때만 위반.
+    const commissionRaw = sales['판매수수료'];
+    const supplyRaw = sales['공급가'];
+    if (commissionRaw === undefined && supplyRaw === undefined) {
+      return v('판매정보 · 판매수수료', '항목을 찾지 못함(화면 구조 변경 가능성)', '');
+    }
+    const commission = parseNumeric(commissionRaw ?? '');
+    const supply = parseNumeric(supplyRaw ?? '');
+    const hasMargin = (commission != null && commission > 0) || (supply != null && supply > 0);
+    return hasMargin
+      ? null
+      : v(
+          '판매정보 · 판매수수료',
+          '수수료 0%이고 공급가도 없음(마진 근거 없음)',
+          `수수료 ${commissionRaw ?? '없음'} · 공급가 ${supplyRaw ?? '없음'}`,
+        );
   }
 
   if (rule.kind === 'discountRateMax') {

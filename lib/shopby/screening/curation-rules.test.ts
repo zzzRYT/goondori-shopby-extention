@@ -27,6 +27,14 @@ function productWithPrices(판매가: string, 즉시할인가?: string): ParsedS
   };
 }
 
+// 판매정보 필드만 갈아끼우는 최소 상품 — 수수료·공급가 검사는 이 섹션만 본다.
+function productWithSales(판매정보: Record<string, string>): ParsedScreeningProduct {
+  return {
+    fields: { 기본정보: {}, 판매정보, 배송정보: {} },
+    images: { main: [], list: [], detail: [], detailTop: [], detailBottom: [] },
+  };
+}
+
 describe('CURATION_RULES', () => {
   it('모든 기본 규칙은 ON이고 메타를 가진다', () => {
     for (const rule of CURATION_RULES) {
@@ -35,12 +43,13 @@ describe('CURATION_RULES', () => {
     }
   });
 
-  it('MD 검수 항목 10종을 기본으로 깐다', () => {
+  it('MD 검수 항목 11종을 기본으로 깐다', () => {
     expect(CURATION_RULES.map((r) => r.id)).toEqual([
       'curation-reverse-margin',
       'curation-zero-commission',
       'curation-discount-rate',
       'curation-main-image',
+      'curation-detail-position',
       'curation-name-length',
       'curation-service-group',
       'curation-zero-stock',
@@ -133,6 +142,65 @@ describe('가격 상한 초과(curation-price-ceiling)', () => {
   });
 });
 
+describe('상세(상단/하단) 이미지 사용(curation-detail-position)', () => {
+  const rule = CURATION_RULES.find((r) => r.id === 'curation-detail-position')!;
+
+  function productWithDetailImages(detailTop: string[], detailBottom: string[]): ParsedScreeningProduct {
+    return {
+      fields: { 기본정보: {}, 판매정보: {}, 배송정보: {} },
+      images: { main: [], list: [], detail: [], detailTop, detailBottom },
+    };
+  }
+
+  it('상세(상단)에 이미지가 있으면 위반 — 앱에서 표현 안 됨', () => {
+    const violations = evaluate(productWithDetailImages(['//cdn/top.jpg'], []), [rule]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].actual).toBe('상단 1장 · 하단 0장');
+  });
+
+  it('상세(하단)에 이미지가 있으면 위반', () => {
+    const violations = evaluate(productWithDetailImages([], ['//cdn/b1.jpg', '//cdn/b2.jpg']), [rule]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].actual).toBe('상단 0장 · 하단 2장');
+  });
+
+  it('상단/하단 상세 이미지가 없으면 통과(본문 상세만 사용)', () => {
+    expect(evaluate(productWithDetailImages([], []), [rule])).toEqual([]);
+  });
+});
+
+describe('수수료 0% 경고(curation-zero-commission)', () => {
+  const rule = CURATION_RULES.find((r) => r.id === 'curation-zero-commission')!;
+
+  it('판매수수료가 있으면(15%) 통과', () => {
+    expect(evaluate(productWithSales({ 판매수수료: '상품수수료, 15%' }), [rule])).toEqual([]);
+  });
+
+  it('판매수수료 0%여도 공급가가 채워져 있으면 통과(엑셀 업로드 케이스)', () => {
+    const product = productWithSales({ 판매수수료: '상품수수료, 0%', 공급가: '30,005원' });
+    expect(evaluate(product, [rule])).toEqual([]);
+  });
+
+  it('판매수수료 0%이고 공급가도 0이면 위반', () => {
+    const product = productWithSales({ 판매수수료: '상품수수료, 0%', 공급가: '0원' });
+    const violations = evaluate(product, [rule]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].label).toBe('판매정보 · 판매수수료');
+  });
+
+  it('판매수수료 0%이고 공급가 항목 자체가 없으면 위반', () => {
+    const violations = evaluate(productWithSales({ 판매수수료: '상품수수료, 0%' }), [rule]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].actual).toContain('공급가 없음');
+  });
+
+  it('수수료·공급가 두 항목이 모두 없으면 화면 구조 변경으로 본다', () => {
+    const violations = evaluate(productWithSales({}), [rule]);
+    expect(violations).toHaveLength(1);
+    expect(violations[0].message).toContain('항목을 찾지 못함');
+  });
+});
+
 describe('mergeCurationRules', () => {
   it('구버전 기본 규칙(curation-brand 등)은 로드 시 제거된다', () => {
     const saved: Rule[] = [
@@ -143,6 +211,26 @@ describe('mergeCurationRules', () => {
     expect(merged.some((r) => r.id === 'curation-brand')).toBe(false); // 구버전 제거
     expect(merged.some((r) => r.id === 'seed-manufacturer')).toBe(true); // 시드 유지
     expect(merged.slice(0, CURATION_RULES.length).map((r) => r.id)).toEqual(CURATION_RULES.map((r) => r.id));
+  });
+
+  it('구버전 수수료 규칙(expected)은 새 derived(zeroCommission) 형태로 마이그레이션된다', () => {
+    const legacy: Rule = {
+      id: 'curation-zero-commission',
+      type: 'expected',
+      section: '판매정보',
+      field: '판매수수료',
+      op: 'gt',
+      value: '0',
+      enabled: false, // 사용자가 꺼둔 상태는 보존
+    };
+    const saved: Rule[] = CURATION_RULES.map((r) =>
+      r.id === 'curation-zero-commission' ? legacy : r,
+    );
+    const merged = mergeCurationRules(saved);
+    const rule = merged.find((r) => r.id === 'curation-zero-commission')!;
+    expect(rule.type).toBe('derived');
+    expect((rule as { kind?: string }).kind).toBe('zeroCommission');
+    expect(rule.enabled).toBe(false);
   });
 
   it('파생 규칙 threshold는 사용자 소유 — 저장본 값을 보존한다', () => {

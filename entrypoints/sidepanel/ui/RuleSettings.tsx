@@ -26,12 +26,19 @@ const IMAGE_KIND_LABELS: Record<ImageRuleKind, string> = {
 
 const DERIVED_KIND_LABELS: Record<DerivedRuleKind, string> = {
   reverseMargin: '역마진 검사',
+  zeroCommission: '수수료·공급가 0 검사',
   discountRateMax: '할인율 상한',
   displayCategoryMax: '전시카테고리 개수 상한',
   maxLength: '글자수 상한',
   saleEndImminent: '판매 종료 임박',
   priceCeiling: '가격 상한',
 };
+
+// 상한값(threshold) 없이 고정 필드만 보는 계산 검사 — 추가 폼에서 상한값 입력을 숨긴다.
+const THRESHOLDLESS_DERIVED_KINDS: ReadonlySet<DerivedRuleKind> = new Set([
+  'reverseMargin',
+  'zeroCommission',
+]);
 
 export function describeRule(rule: Rule): string {
   if (rule.type === 'required') return `${rule.section} · ${rule.field} 필수`;
@@ -188,7 +195,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
         id,
         type: 'derived',
         kind: derivedKind,
-        threshold: derivedKind === 'reverseMargin' ? undefined : Number(threshold) || undefined,
+        threshold: THRESHOLDLESS_DERIVED_KINDS.has(derivedKind) ? undefined : Number(threshold) || undefined,
         section: derivedKind === 'maxLength' ? section : undefined,
         field: derivedKind === 'maxLength' ? field : undefined,
         enabled: true,
@@ -265,7 +272,7 @@ function AddRuleForm({ onAdd }: { onAdd: (rule: Rule) => void }) {
               ))}
             </select>
           </label>
-          {derivedKind !== 'reverseMargin' && (
+          {!THRESHOLDLESS_DERIVED_KINDS.has(derivedKind) && (
             <label>
               상한값
               <input
